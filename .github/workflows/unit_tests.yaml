@@ -26,7 +26,7 @@ jobs:
     - uses: dorny/test-reporter@v2
       if: ${{ !cancelled() }}
       with:
-        artifact: test-results            # artifact name
-        name: Unit tests result                  # Name of the check run which will be created
-        path: '*.xml'                     # Path to test results (inside artifact .zip)
-        reporter: java-junit              # Format of test results
+        artifact: test-results
+        name: Unit tests result
+        path: '*.xml'
+        reporter: java-junit # да-да, не удивляйтесь
