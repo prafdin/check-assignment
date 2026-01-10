@@ -30,7 +30,7 @@ def test_event_update_site(requests_mock, monkeypatch):
 
     with patch("scripts.check_webhooks_devops_assignment.push_ci_commit") as mock_push_ci_commit:
         mock_push_ci_commit.return_value = None
-        assert check_event_update_site(app_url, webhook_url) is True
+        assert check_event_update_site(app_url, webhook_url, 'master') is True
 
 def test_event_doest_not_update_site(requests_mock, monkeypatch):
     app_url = "https://example.ru"
@@ -44,7 +44,7 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
     with patch("scripts.check_webhooks_devops_assignment.push_ci_commit") as mock_push_ci_commit:
         mock_push_ci_commit.return_value = None
-        assert check_event_update_site(app_url, webhook_url) is False
+        assert check_event_update_site(app_url, webhook_url, 'master') is False
 
 
 def test_site_not_updated_automatic(requests_mock, monkeypatch):
