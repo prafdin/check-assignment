@@ -1,5 +1,7 @@
 {
   "proxy": "course.prafdin.ru",
+  "sa_login": "SA3000UDP",
+  "sa_mail": "pravdin.web@gmail.com",
   "users": [
     {
       "login": "prafdin",

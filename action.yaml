@@ -20,12 +20,21 @@ inputs:
       Run webhooks assignment.
       Default is false.
     default: false
+  sa_ssh_pkey:
+    description: |
+      Private key for GitHub Service account.
+    required: true
 runs:
   using: "composite"
   steps:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.12'
+
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ inputs.sa_ssh_pkey }}
 
     - name: Prepare parameters
       id: parameters
@@ -57,4 +66,6 @@ runs:
         python3 "$GITHUB_ACTION_PATH/scripts/check_webhooks_devops_assignment.py" \
           --repo_url ${{ steps.parameters.outputs.repo_url }} \
           --id ${{ steps.parameters.outputs.id }} \
-          --proxy ${{ steps.parameters.outputs.proxy }}
+          --proxy ${{ steps.parameters.outputs.proxy }} \
+          --sa_login ${{ steps.parameters.outputs.sa_login }} \
+          --sa_mail "${{ steps.parameters.outputs.sa_mail }}"

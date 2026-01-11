@@ -20,5 +20,6 @@ jobs:
       with:
         params_file: 'params.json'
         assignee_login: ${{ github.repository_owner }}
-        repo_name: ${{ github.repository }}
+        repo_name: "prafdin/check-assignment-tests"
+        sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         webhooks_devops_assignment: true

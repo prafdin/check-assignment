@@ -38,6 +38,8 @@ if __name__ == '__main__':
         out_parameters["id"] = user["id"]
 
     out_parameters["proxy"] = params["proxy"]
+    out_parameters["sa_login"] = params["sa_login"]
+    out_parameters["sa_mail"] = params["sa_mail"]
 
     output_str = "\n".join(f"{k}={str(v).lower()}" for k, v in out_parameters.items())
     print(output_str)
