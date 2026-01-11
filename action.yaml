@@ -1,0 +1,60 @@
+name: 'Check Assignment Action'
+description: 'Run scripts for check assignments'
+author: 'prafdin'
+inputs:
+  params_file:
+    description: |
+      Path to params file.
+    required: true
+    default: ""
+  assignee_login:
+    description: |
+      GitHub username of the person performing the assignment.
+    default: ${{ github.event.pull_request_target.user.login }}
+  repo_name:
+    description: |
+      The full name of the repository in which the assignment was completed.
+    default: ${{ github.event.pull_request_target.head.repo.full_name }}
+  webhooks_devops_assignment:
+    description: |
+      Run webhooks assignment.
+      Default is false.
+    default: false
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Prepare parameters
+      id: parameters
+      env:
+        HEAD_REPOSITORY: ${{ inputs.repo_name }}
+        ASSIGNEE_LOGIN: ${{ inputs.assignee_login }}
+      shell: bash
+      run: |
+        PARAMETERS=$(python3 "$GITHUB_ACTION_PATH/scripts/prepare_parameters.py" ${{ inputs.params_file }})
+        echo "Parameters:"
+        echo "$PARAMETERS"
+        echo "$PARAMETERS" >> $GITHUB_OUTPUT
+
+    - name: Fail if not authorized
+      if: ${{ steps.parameters.outputs.authorized == 'false' }}
+      shell: bash
+      run: |
+        echo "User is not authorized"
+        exit 1
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install -r "$GITHUB_ACTION_PATH/requirements.txt"
+
+    - if: ${{ inputs.webhooks_devops_assignment == 'true' }}
+      shell: bash
+      run: |
+        python3 "$GITHUB_ACTION_PATH/scripts/check_webhooks_devops_assignment.py" \
+          --repo_url ${{ steps.parameters.outputs.repo_url }} \
+          --id ${{ steps.parameters.outputs.id }} \
+          --proxy ${{ steps.parameters.outputs.proxy }}

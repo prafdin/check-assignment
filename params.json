@@ -1,0 +1,9 @@
+{
+  "proxy": "course.prafdin.ru",
+  "users": [
+    {
+      "login": "prafdin",
+      "id": "prafdin"
+    }
+  ]
+}

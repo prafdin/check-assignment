@@ -1,0 +1,24 @@
+name: 'Run integration tests'
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_assignment:
+        description: 'Scenario to be checked'
+        required: true
+        type: choice
+        options:
+          - webhooks_devops_assignment
+
+jobs:
+  webhook_assignment:
+    if: github.event.inputs.check_assignment == 'webhooks_devops_assignment'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: ./
+      with:
+        params_file: 'params.json'
+        assignee_login: ${{ github.repository_owner }}
+        repo_name: ${{ github.repository }}
+        webhooks_devops_assignment: true
