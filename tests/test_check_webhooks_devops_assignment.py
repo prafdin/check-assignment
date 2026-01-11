@@ -24,8 +24,8 @@ def test_event_update_site(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
     requests_mock.get(app_url, [
-        {"text": "fooo<deploy-date>202512241010</deploy-date>bar", "status_code": 200},
-        {"text": "fooo<deploy-date>202512241011</deploy-date>bar", "status_code": 200}
+        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deploydate" content="20260120013">bar', "status_code": 200}
     ])
 
     with patch("scripts.check_webhooks_devops_assignment.push_ci_commit") as mock_push_ci_commit:
@@ -38,8 +38,8 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
     requests_mock.get(app_url, [
-        {"text": "fooo<deploy-date>202512241010</deploy-date>bar", "status_code": 200},
-        {"text": "fooo<deploy-date>202512241010</deploy-date>bar", "status_code": 200}
+        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deploydate" content="20260120012">var', "status_code": 200}
     ])
 
     with patch("scripts.check_webhooks_devops_assignment.push_ci_commit") as mock_push_ci_commit:
@@ -52,8 +52,8 @@ def test_site_not_updated_automatic(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "wait_automatic_update", 0.1)
     requests_mock.get(app_url, [
-        {"text": "fooo<deploy-date>202512241010</deploy-date>bar", "status_code": 200},
-        {"text": "fooo<deploy-date>202512241010</deploy-date>bar", "status_code": 200}
+        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200}
     ])
 
     assert check_no_automatic_site_update(app_url) is True
