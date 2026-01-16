@@ -88,11 +88,6 @@ def extract_date(body) -> str:
     else:
         raise ValueError("Meta tag with 'deploydate' name not found on page")
 
-    match = re.search(r"<deploy-date>(.*?)</deploy-date>", body, re.DOTALL)
-    if not match:
-        raise ValueError("Tag <deploy-date> not found in body")
-    return match.group(1).strip()
-
 def main():
     parser = argparse.ArgumentParser(description="Check webhooks DevOps assignment.")
     parser.add_argument("--repo_url", type=str, required=True,
