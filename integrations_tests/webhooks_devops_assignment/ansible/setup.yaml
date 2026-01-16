@@ -1,0 +1,6 @@
+---
+- name: Test
+  hosts: all
+  tasks:
+    - name: Update package cache
+      ping:

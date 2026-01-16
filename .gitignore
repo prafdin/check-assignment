@@ -1,1 +1,5 @@
 integration_tests.secrets
+check-assignment-github-key
+.terraform/
+.terraform.*
+terraform.tfstate*
