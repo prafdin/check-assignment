@@ -1,0 +1,12 @@
+name: 'Echo env'
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo env
+        run: |
+          env

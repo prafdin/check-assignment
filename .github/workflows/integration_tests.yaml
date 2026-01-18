@@ -3,6 +3,11 @@ name: 'Run integration tests'
 on:
   workflow_dispatch:
     inputs:
+      run_terraform:
+        description: 'Create and setup VM for run scenario'
+        required: false
+        type: boolean
+        default: 'false'
       check_assignment:
         description: 'Scenario to be checked'
         required: true
@@ -18,50 +23,67 @@ jobs:
       TF_VAR_run: ${{ github.run_id }}
       YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
       YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
-      YC_TOKEN: ${{ secrets.YC_TOKEN }}
     steps:
     - uses: actions/checkout@v5
 
     - uses: hashicorp/setup-terraform@v3
+      if: github.event.inputs.run_terraform
       with:
         terraform_version: "1.14.0"
 
+    - name: Setup YC_TOKEN for act run
+      if: github.event.inputs.run_terraform && env.ACT == 'true'
+      run:
+        echo "YC_TOKEN=${{ secrets.YC_TOKEN }}" >> $GITHUB_ENV
+
+    - name: Issue YC_TOKEN for GitHub run
+      if: github.event.inputs.run_terraform && !env.ACT
+      id: get-iam-token
+      uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
+      with:
+        yc-sa-id: ${{ secrets.YC_SA_ID }}
+
+    - name: Setup YC_TOKEN for GitHub run
+      if: github.event.inputs.run_terraform && !env.ACT
+      run:
+        echo "YC_TOKEN=${{ steps.get-iam-token.outputs.token }}" >> $GITHUB_ENV
+
     - name: Run terraform apply
+      if: github.event.inputs.run_terraform
       run: |
         cd integrations_tests/webhooks_devops_assignment/terraform
         terraform init
         terraform apply -auto-approve
 
     - name: Add record to /etc/hosts
+      if: github.event.inputs.run_terraform
       run: |
         cd integrations_tests/webhooks_devops_assignment/terraform
         echo "$(terraform output -raw external_ip_address_vm) wh-devops.local" | sudo tee -a /etc/hosts
 
-    - run: getent hosts wh-devops.local
-
     - name: Setup SSH Agent
+      if: github.event.inputs.run_terraform
       uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ secrets.SSH_VM_PRIVATE_KEY }}
 
     - name: Setup with Ansible
+      if: github.event.inputs.run_terraform
       run: |
         cd integrations_tests/webhooks_devops_assignment/ansible
         ansible-playbook setup.yaml
 
-    - run: sleep 120
+    - uses: ./
+      with:
+        params_file: 'params.json'
+        assignee_login: ${{ github.repository_owner }}
+        repo_name: "prafdin/check-assignment-tests"
+        sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
+        webhooks_devops_assignment: true
 
     - name: Run terraform destroy
-      if: always()
+      if: ${{ github.event.inputs.run_terraform && always() }}
       run: |
         cd integrations_tests/webhooks_devops_assignment/terraform
         terraform state rm yandex_vpc_subnet.subnet || true
         terraform apply -destroy -auto-approve
-
-#    - uses: ./
-#      with:
-#        params_file: 'params.json'
-#        assignee_login: ${{ github.repository_owner }}
-#        repo_name: "prafdin/check-assignment-tests"
-#        sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
-#        webhooks_devops_assignment: true

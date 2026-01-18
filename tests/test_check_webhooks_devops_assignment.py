@@ -60,5 +60,5 @@ def test_site_not_updated_automatic(requests_mock, monkeypatch):
 
 @pytest.mark.slow
 def test_push_ci_commit():
-    push_ci_commit("git@github.com:prafdin/for-test-only.git", "main")
+    push_ci_commit("git@github.com:prafdin/check-assignment-tests.git", "webhooks_devops_assignment")
     assert True is True

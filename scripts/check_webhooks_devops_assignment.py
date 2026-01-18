@@ -61,7 +61,7 @@ def push_ci_commit(repo_ssh_url, branch):
         credentials=pygit2.KeypairFromAgent("git")
     )
     with tempfile.TemporaryDirectory() as tmpdirname:
-        repo = pygit2.clone_repository(repo_ssh_url, tmpdirname, callbacks=callbacks)
+        repo = pygit2.clone_repository(repo_ssh_url, tmpdirname, callbacks=callbacks, checkout_branch=branch)
         branch_ref = f"refs/heads/{branch}"
         repo.checkout(branch_ref)
         author = pygit2.Signature(CONFIG["sa_login"], CONFIG["sa_mail"])
@@ -114,7 +114,7 @@ def main():
     tests.append(partial(check_app_is_alive, app_url))
     tests.append(partial(check_no_automatic_site_update, app_url))
     print(args)
-    tests.append(partial(check_event_update_site, app_url, args.repo_url, 'main'))
+    tests.append(partial(check_event_update_site, app_url, args.repo_url, 'webhooks_devops_assignment'))
 
 
     failed_tests = 0
