@@ -15,6 +15,9 @@ on:
         options:
           - webhooks_devops_assignment
 
+permissions:
+  id-token: write
+
 jobs:
   webhook_assignment:
     if: github.event.inputs.check_assignment == 'webhooks_devops_assignment'
