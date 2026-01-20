@@ -1,33 +1,40 @@
 import tempfile
 import pygit2
 from bs4 import BeautifulSoup
+from typing import Any, Dict
 
 
-
-def push_ci_commit(repo_ssh_url, branch, config):
-    assert repo_ssh_url.startswith("git") is True
-    callbacks = pygit2.RemoteCallbacks(
-        credentials=pygit2.KeypairFromAgent("git")
-    )
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        repo = pygit2.clone_repository(repo_ssh_url, tmpdirname, callbacks=callbacks, checkout_branch=branch)
-        branch_ref = f"refs/heads/{branch}"
-        repo.checkout(branch_ref)
-        author = pygit2.Signature(config["sa_login"], config["sa_mail"])
-        committer = pygit2.Signature(config["sa_login"], config["sa_mail"])
-        tree = repo.index.write_tree()
-        parent = repo.head.target
+class CICommit:
+    def __init__(self, repo_ssh_url: str, branch: str, config: Dict[str, Any]):
+        assert repo_ssh_url.startswith("git") is True
+        self.repo_ssh_url = repo_ssh_url
+        self.branch = branch
+        self.config = config
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.callbacks = pygit2.RemoteCallbacks(
+            credentials=pygit2.KeypairFromAgent("git")
+        )
+        self.repo = pygit2.clone_repository(self.repo_ssh_url, self.tmpdir.name, callbacks=self.callbacks, checkout_branch=self.branch)
+        self.branch_ref = f"refs/heads/{self.branch}"
+        self.repo.checkout(self.branch_ref)
+        author = pygit2.Signature(self.config["sa_login"], self.config["sa_mail"])
+        committer = pygit2.Signature(self.config["sa_login"], self.config["sa_mail"])
+        tree = self.repo.index.write_tree()
+        parent = self.repo.head.target
         commit_message = "ci"
-        repo.create_commit(
-            branch_ref,
+        self.commit_sha = self.repo.create_commit(
+            self.branch_ref,
             author,
             committer,
             commit_message,
             tree,
             [parent]
         )
-        remote = repo.remotes["origin"]
-        remote.push([branch_ref], callbacks=callbacks)
+
+    def push(self):
+        remote = self.repo.remotes["origin"]
+        remote.push([self.branch_ref], callbacks=self.callbacks)
+
 
 def extract_date(body) -> str:
     soup = BeautifulSoup(body, "html.parser")

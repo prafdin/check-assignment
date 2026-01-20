@@ -1,13 +1,14 @@
 import argparse
 import sys
+import re
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, CONFIG
+# Import existing checks from the checker.checks module
+from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, check_workflow_run_success, CONFIG
 from checker.utils import CICommit
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Check webhooks DevOps assignment.")
+    parser = argparse.ArgumentParser(description="Check a new assignment.")
     parser.add_argument("--repo_url", type=str, required=True,
                         help="URL of the student's repository.")
     parser.add_argument("--id", type=str, required=True,
@@ -18,6 +19,8 @@ def main():
                         help="GitHub service account login")
     parser.add_argument("--sa_mail", type=str, required=True,
                         help="GitHub service account login")
+    parser.add_argument("--github_token", type=str, required=True,
+                        help="GitHub token for API requests.")
 
     args = parser.parse_args()
 
@@ -29,12 +32,21 @@ def main():
     tests = []
 
     app_url = f"http://app.{args.id}.{args.proxy}"
+
     tests.append(partial(check_app_is_alive, app_url))
     tests.append(partial(check_no_automatic_site_update, app_url))
-
-    ci_commit = CICommit(args.repo_url, 'webhooks_devops_assignment', CONFIG)
+    
+    ci_commit = CICommit(args.repo_url, 'github_actions_assignment', CONFIG)
     tests.append(partial(check_event_update_site, app_url, ci_commit))
 
+    # Extract owner/repo from the repo_url
+    match = re.search(r'git@github.com:(.*)\.git', args.repo_url)
+    if not match:
+        print("Could not extract repository name from repo_url.")
+        sys.exit(1)
+    repo_name = match.group(1)
+
+    tests.append(partial(check_workflow_run_success, repo_name, str(ci_commit.commit_sha), args.github_token))
 
     failed_tests = 0
     for test in tests:

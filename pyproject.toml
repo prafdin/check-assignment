@@ -21,7 +21,8 @@ dependencies = [
     "requests-mock",
     "pygit2",
     "beautifulsoup4",
-    "setuptools"
+    "setuptools",
+    "PyGithub"
 ]
 
 [tool.setuptools.packages.find]
