@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "check-assignment"
+version = "0.1.0"
+authors = [
+  { name="User", email="user@example.com" },
+]
+description = "A package to check assignments"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests",
+    "pytest",
+    "requests-mock",
+    "pygit2",
+    "beautifulsoup4",
+    "setuptools"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["checker*", "scripts*"]
+exclude = ["tests*"]
+namespaces = false

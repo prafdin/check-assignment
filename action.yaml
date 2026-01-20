@@ -55,15 +55,15 @@ runs:
         echo "User is not authorized"
         exit 1
 
-    - name: Install dependencies
+    - name: Install Project
       shell: bash
       run: |
-        pip install -r "$GITHUB_ACTION_PATH/requirements.txt"
+        pip install .
 
     - if: ${{ inputs.webhooks_devops_assignment == 'true' }}
       shell: bash
       run: |
-        python3 "$GITHUB_ACTION_PATH/scripts/check_webhooks_devops_assignment.py" \
+        python3 -m scripts.check_webhooks_devops_assignment \
           --repo_url ${{ steps.parameters.outputs.repo_url }} \
           --id ${{ steps.parameters.outputs.id }} \
           --proxy ${{ steps.parameters.outputs.proxy }} \

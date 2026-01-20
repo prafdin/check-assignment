@@ -1,5 +1,0 @@
-requests
-pytest
-requests-mock
-pygit2
-beautifulsoup4
