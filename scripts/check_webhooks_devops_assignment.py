@@ -1,4 +1,5 @@
 import argparse
+import sys
 from functools import partial
 
 from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, CONFIG
