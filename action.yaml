@@ -20,10 +20,19 @@ inputs:
       Run webhooks assignment.
       Default is false.
     default: false
+  github_actions_assignment:
+    description: |
+      Run GitHub Actions assignment.
+      Default is false.
+    default: false
   sa_ssh_pkey:
     description: |
       Private key for GitHub Service account.
     required: true
+  github_token:
+    description: |
+      GitHub token for API requests.
+    required: false
 runs:
   using: "composite"
   steps:
@@ -69,3 +78,13 @@ runs:
           --proxy ${{ steps.parameters.outputs.proxy }} \
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}"
+    - if: ${{ inputs.github_actions_assignment == 'true' }}
+      shell: bash
+      run: |
+        python3 -m scripts.check_github_actions_assignment \
+          --repo_url ${{ steps.parameters.outputs.repo_url }} \
+          --id ${{ steps.parameters.outputs.id }} \
+          --proxy ${{ steps.parameters.outputs.proxy }} \
+          --sa_login ${{ steps.parameters.outputs.sa_login }} \
+          --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
+          --github_token "${{ inputs.github_token }}"

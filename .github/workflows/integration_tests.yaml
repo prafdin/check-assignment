@@ -14,11 +14,27 @@ on:
         type: choice
         options:
           - webhooks_devops_assignment
+          - github_actions_assignment
 
 permissions:
   id-token: write
 
 jobs:
+  github_actions_assignment:
+    if: github.event.inputs.check_assignment == 'github_actions_assignment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./
+        with:
+          params_file: 'params.json'
+          assignee_login: ${{ github.repository_owner }}
+          repo_name: "prafdin/check-assignment-tests"
+          sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actions_assignment: true
+
   webhook_assignment:
     if: github.event.inputs.check_assignment == 'webhooks_devops_assignment'
     runs-on: ubuntu-latest

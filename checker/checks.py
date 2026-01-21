@@ -5,7 +5,7 @@ from github import Github
 from .utils import extract_date, CICommit
 
 CONFIG = {
-    "check_event_timeout": 30,
+    "check_event_timeout": 60,
     "wait_automatic_update": 5,
     "workflow_timeout": 120,  # 2 minutes
     "workflow_poll_interval": 10, # default poll interval
