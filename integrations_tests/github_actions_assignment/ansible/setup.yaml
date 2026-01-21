@@ -1,0 +1,69 @@
+---
+- name: Deploy FRP listener
+  hosts: all
+  gather_facts: false
+  become: yes
+  vars:
+    repo_url: "https://github.com/prafdin/check-assignment-tests.git"
+    repo_branch: "github_actions_assignment"
+    repo_dest: "/tmp/github_actions_assignment"
+  tasks:
+    - name: Wait until host is reachable via SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 360
+
+    - name: Update apt cache
+      become: yes
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Ensure git, make and docker.io are installed
+      become: yes
+      ansible.builtin.apt:
+        name:
+          - git
+          - make
+          - docker.io
+        state: present
+        install_recommends: no
+
+    - name: Add ansible user to docker group
+      become: yes
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Clone repository
+      ansible.builtin.git:
+        force: true
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ repo_branch }}"
+        update: yes
+
+    - name: Make install script executable
+      ansible.builtin.file:
+        path: "{{ repo_dest }}/install-frp.sh"
+        mode: '0755'
+
+    - name: Run install-frp.sh
+      become: yes
+      ansible.builtin.command:
+        cmd: "./install-frp.sh course.prafdin.ru devops prafdin"
+        chdir: "{{ repo_dest }}"
+
+    - name: Remove app
+      ansible.builtin.command:
+        cmd: "make rm"
+        chdir: "{{ repo_dest }}"
+
+    - name: Build app
+      ansible.builtin.command:
+        cmd: "make build"
+        chdir: "{{ repo_dest }}"
+
+    - name: Run app
+      ansible.builtin.command:
+        cmd: "make run"
+        chdir: "{{ repo_dest }}"

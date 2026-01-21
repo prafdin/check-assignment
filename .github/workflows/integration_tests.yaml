@@ -20,28 +20,14 @@ permissions:
   id-token: write
 
 jobs:
-  github_actions_assignment:
-    if: github.event.inputs.check_assignment == 'github_actions_assignment'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: ./
-        with:
-          params_file: 'params.json'
-          assignee_login: ${{ github.repository_owner }}
-          repo_name: "prafdin/check-assignment-tests"
-          sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actions_assignment: true
-
-  webhook_assignment:
-    if: github.event.inputs.check_assignment == 'webhooks_devops_assignment'
+  check:
     runs-on: ubuntu-latest
     env:
       TF_VAR_run: ${{ github.run_id }}
       YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
       YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+      TERRAFORM_WORKING_DIR: integrations_tests/${{ github.event.inputs.check_assignment }}/terraform
+      ANSIBLE_WORKING_DIR: integrations_tests/${{ github.event.inputs.check_assignment }}/ansible
     steps:
     - uses: actions/checkout@v5
 
@@ -70,14 +56,14 @@ jobs:
     - name: Run terraform apply
       if: github.event.inputs.run_terraform
       run: |
-        cd integrations_tests/webhooks_devops_assignment/terraform
+        cd ${{ env.TERRAFORM_WORKING_DIR }}
         terraform init
         terraform apply -auto-approve
 
     - name: Add record to /etc/hosts
       if: github.event.inputs.run_terraform
       run: |
-        cd integrations_tests/webhooks_devops_assignment/terraform
+        cd ${{ env.TERRAFORM_WORKING_DIR }}
         echo "$(terraform output -raw external_ip_address_vm) wh-devops.local" | sudo tee -a /etc/hosts
 
     - name: Setup SSH Agent
@@ -89,10 +75,12 @@ jobs:
     - name: Setup with Ansible
       if: github.event.inputs.run_terraform
       run: |
-        cd integrations_tests/webhooks_devops_assignment/ansible
+        cd ${{ env.ANSIBLE_WORKING_DIR }}
         ansible-playbook setup.yaml
 
-    - uses: ./
+    - name: Run check for webhooks_devops_assignment
+      if: ${{ github.event.inputs.check_assignment == 'webhooks_devops_assignment' }}
+      uses: ./
       with:
         params_file: 'params.json'
         assignee_login: ${{ github.repository_owner }}
@@ -100,9 +88,20 @@ jobs:
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         webhooks_devops_assignment: true
 
+    - name: Run check for github_actions_assignment
+      if: ${{ github.event.inputs.check_assignment == 'github_actions_assignment' }}
+      uses: ./
+      with:
+        params_file: 'params.json'
+        assignee_login: ${{ github.repository_owner }}
+        repo_name: "prafdin/check-assignment-tests"
+        sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_actions_assignment: true
+
     - name: Run terraform destroy
       if: ${{ github.event.inputs.run_terraform && always() }}
       run: |
-        cd integrations_tests/webhooks_devops_assignment/terraform
+        cd ${{ env.TERRAFORM_WORKING_DIR }}
         terraform state rm yandex_vpc_subnet.subnet || true
         terraform apply -destroy -auto-approve
