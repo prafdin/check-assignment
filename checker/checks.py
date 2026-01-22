@@ -3,6 +3,9 @@ from time import sleep
 import requests
 from github import Github
 from .utils import extract_date, CICommit
+import os
+import shutil
+import pygit2 # New import
 
 CONFIG = {
     "check_event_timeout": 60,
@@ -96,3 +99,44 @@ def check_workflow_run_success(repo_name: str, commit_sha: str, github_token: st
     except Exception as e:
         print(f"Test FAILED: An error occurred while checking the workflow run: {e}")
         return False
+
+
+def check_required_workflow_files(repo_url: str, branch_name: str, files: list[str]) -> bool:
+    print(f"--- Running Test: Check for required workflow files in {repo_url} on branch {branch_name} ---")
+    
+    temp_dir = None
+    try:
+        # Create a temporary directory for cloning
+        temp_dir = os.path.join('/tmp', f"repo_clone_{os.urandom(8).hex()}")
+        os.makedirs(temp_dir)
+
+        # Clone the repository
+        # For SSH authentication, pygit2 will automatically use the SSH agent if configured.
+        print(f"Cloning {repo_url} into {temp_dir}")
+        repo = pygit2.clone_repository(repo_url, temp_dir, checkout_branch=branch_name)
+
+        all_files_exist = True
+        for file_path in files:
+            full_path = os.path.join(temp_dir, file_path)
+            if not os.path.exists(full_path):
+                print(f"Test FAILED: Required file '{file_path}' does not exist.")
+                all_files_exist = False
+                break
+            print(f"Found required file: '{file_path}'.")
+
+        if all_files_exist:
+            print("Test PASSED: All required workflow files exist.")
+            return True
+        else:
+            return False
+
+    except pygit2.GitError as e:
+        print(f"Test FAILED: Git error during cloning or checkout: {e}")
+        return False
+    except Exception as e:
+        print(f"Test FAILED: An unexpected error occurred: {e}")
+        return False
+    finally:
+        if temp_dir and os.path.exists(temp_dir):
+            print(f"Cleaning up temporary directory: {temp_dir}")
+            shutil.rmtree(temp_dir)
