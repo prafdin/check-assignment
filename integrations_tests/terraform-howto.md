@@ -42,3 +42,20 @@ echo "export YC_CLOUD_ID=$(yc config get cloud-id)"  >> .env
 echo "export YC_FOLDER_ID=$(yc config get folder-id)" >> .env
 echo "export TF_HTTP_TIMEOUT=240s" >> .env
 ```
+
+## Локальный запуск terraform
+
+```bash
+. ~/check-assignment-yacloud-sa/.env
+
+export TF_VAR_run=local
+terraform init
+terraform plan
+terraform apply
+```
+
+# Удалить ресурсы
+```bash
+terraform state rm yandex_vpc_subnet.subnet || true
+terraform destroy
+```

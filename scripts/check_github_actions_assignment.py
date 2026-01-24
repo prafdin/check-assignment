@@ -3,9 +3,17 @@ import sys
 import re
 from functools import partial
 
-# Import existing checks from the checker.checks module
-from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, check_workflow_run_success, CONFIG
+from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, check_workflow_run_success, check_required_workflow_files, check_release_updates_site, CONFIG
 from checker.utils import CICommit
+
+def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str, github_token: str) -> bool:
+    """
+    Pushes a commit and then checks for the success of the triggered workflow.
+    """
+    print("--- Pushing commit to trigger workflow ---")
+    ci_commit.push()
+    print("--- Commit pushed, now checking for workflow run ---")
+    return check_workflow_run_success(repo_name, commit_sha, github_token)
 
 def main():
     parser = argparse.ArgumentParser(description="Check a new assignment.")
@@ -37,7 +45,6 @@ def main():
     tests.append(partial(check_no_automatic_site_update, app_url))
     
     ci_commit = CICommit(args.repo_url, 'github_actions_assignment', CONFIG)
-    tests.append(partial(check_event_update_site, app_url, ci_commit))
 
     # Extract owner/repo from the repo_url
     match = re.search(r'git@github.com:(.*)\.git', args.repo_url)
@@ -46,7 +53,12 @@ def main():
         sys.exit(1)
     repo_name = match.group(1)
 
-    tests.append(partial(check_workflow_run_success, repo_name, str(ci_commit.commit_sha), args.github_token))
+    tests.append(partial(push_and_check_workflow, ci_commit, repo_name, str(ci_commit.commit_sha), args.github_token))
+    
+    required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
+    tests.append(partial(check_required_workflow_files, args.repo_url, 'github_actions_assignment', required_workflow_files))
+
+    tests.append(partial(check_release_updates_site, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
 
     failed_tests = 0
     for test in tests:
