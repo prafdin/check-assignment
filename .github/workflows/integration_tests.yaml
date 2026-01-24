@@ -7,7 +7,6 @@ on:
         description: 'Create and setup VM for run scenario'
         required: false
         type: boolean
-        default: 'false'
       check_assignment:
         description: 'Scenario to be checked'
         required: true
