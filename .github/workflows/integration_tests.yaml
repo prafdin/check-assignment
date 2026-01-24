@@ -100,7 +100,7 @@ jobs:
         assignee_login: ${{ github.repository_owner }}
         repo_name: "prafdin/check-assignment-tests"
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.SA_GITHUB_TOKEN }}
         github_actions_assignment: true
 
     - name: Run terraform destroy
