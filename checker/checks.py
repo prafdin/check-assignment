@@ -2,7 +2,7 @@ import time
 from time import sleep
 import requests
 from github import Github
-from .utils import extract_date, CICommit
+from .utils import extract_deploy_ref, CICommit
 import os
 import shutil
 import pygit2 # New import
@@ -34,18 +34,18 @@ def check_app_is_alive(url: str) -> bool:
         return False
 
 def check_no_automatic_site_update(url) -> bool:
-    date_before = extract_date(requests.get(url).text)
+    ref_before = extract_deploy_ref(requests.get(url).text)
 
     sleep_time = CONFIG["wait_automatic_update"]
     print(f"Sleep {sleep_time} seconds")
     sleep(sleep_time)
 
-    date_after = extract_date(requests.get(url).text)
+    ref_after = extract_deploy_ref(requests.get(url).text)
 
-    return date_before == date_after
+    return ref_before == ref_after
 
 def check_event_update_site(app_url: str, commit: CICommit) -> bool:
-    date_before = extract_date(requests.get(app_url).text)
+    ref_before = extract_deploy_ref(requests.get(app_url).text)
 
     commit.push()
 
@@ -53,9 +53,9 @@ def check_event_update_site(app_url: str, commit: CICommit) -> bool:
     print(f"Sleep {sleep_time} seconds")
     sleep(sleep_time)
 
-    date_after = extract_date(requests.get(app_url).text)
+    ref_after = extract_deploy_ref(requests.get(app_url).text)
 
-    return date_before != date_after
+    return ref_before != ref_after
 
 def _wait_for_workflow_run(repo, find_run_func) -> bool:
     """
@@ -163,10 +163,10 @@ def check_required_workflow_files(repo_url: str, branch_name: str, files: list[s
 def check_release_updates_site(app_url: str, repo_name: str, github_token: str, commit_sha: str) -> bool:
     print(f"--- Running Test: Check if a new release triggers a site update for repo {repo_name} ---")
     try:
-        # 1. Get the deploy date before the release
-        print(f"Getting initial deploy date from {app_url}...")
-        date_before = extract_date(requests.get(app_url).text)
-        print(f"Initial deploy date: {date_before}")
+        # 1. Get the deploy ref before the release
+        print(f"Getting initial deploy ref from {app_url}...")
+        ref_before = extract_deploy_ref(requests.get(app_url).text)
+        print(f"Initial deploy ref: {ref_before}")
 
         # 2. Create a git tag and release
         g = Github(github_token)
@@ -206,17 +206,29 @@ def check_release_updates_site(app_url: str, repo_name: str, github_token: str, 
         print(f"Waiting for up to {timeout} seconds for deployment...")
         while time.time() - start_time < timeout:
             print(f"Checking for update... (elapsed: {int(time.time() - start_time)}s)")
-            date_after = extract_date(requests.get(app_url).text)
-            if date_before != date_after:
-                print(f"Test PASSED: Deploy date changed from '{date_before}' to '{date_after}'.")
+            ref_after = extract_deploy_ref(requests.get(app_url).text)
+            if ref_before != ref_after:
+                print(f"Test PASSED: Deploy ref changed from '{ref_before}' to '{ref_after}'.")
                 return True
             sleep(poll_interval)
 
         # 5. If loop finishes, timeout was reached
-        print(f"Test FAILED: Deploy date '{date_before}' did not change after {timeout} seconds.")
+        print(f"Test FAILED: Deploy ref '{ref_before}' did not change after {timeout} seconds.")
         return False
 
     except Exception as e:
         print(f"Test FAILED: An error occurred: {e}")
+        return False
+
+
+def check_deploy_ref_matches_commit(app_url: str, expected_commit_sha: str) -> bool:
+    print(f"--- Running Test: Check if deploy ref on page matches commit SHA {expected_commit_sha} ---")
+
+    deployed_ref = extract_deploy_ref(requests.get(app_url).text)
+    if deployed_ref == expected_commit_sha:
+        print(f"Test PASSED: Deployed ref '{deployed_ref}' matches expected SHA.")
+        return True
+    else:
+        print(f"Test FAILED: Deploy ref did not match expected SHA '{expected_commit_sha}'")
         return False
 

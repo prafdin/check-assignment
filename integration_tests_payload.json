@@ -1,6 +1,6 @@
 {
   "inputs": {
     "check_assignment": "webhooks_devops_assignment",
-    "run_terraform": true
+    "run_terraform": false
   }
 }

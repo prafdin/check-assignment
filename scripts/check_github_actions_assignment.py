@@ -3,7 +3,7 @@ import sys
 import re
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, check_workflow_run_success, check_required_workflow_files, check_release_updates_site, CONFIG
+from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, check_workflow_run_success, check_required_workflow_files, check_release_updates_site, check_deploy_ref_matches_commit, CONFIG
 from checker.utils import CICommit
 
 def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str, github_token: str) -> bool:
@@ -54,11 +54,12 @@ def main():
     repo_name = match.group(1)
 
     tests.append(partial(push_and_check_workflow, ci_commit, repo_name, str(ci_commit.commit_sha), args.github_token))
-    
+
     required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
     tests.append(partial(check_required_workflow_files, args.repo_url, 'github_actions_assignment', required_workflow_files))
 
     tests.append(partial(check_release_updates_site, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
+    tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
 
     failed_tests = 0
     for test in tests:

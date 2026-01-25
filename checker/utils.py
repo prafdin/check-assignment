@@ -36,10 +36,10 @@ class CICommit:
         remote.push([self.branch_ref], callbacks=self.callbacks)
 
 
-def extract_date(body) -> str:
+def extract_deploy_ref(body) -> str:
     soup = BeautifulSoup(body, "html.parser")
-    meta_tag = soup.find("meta", attrs={"name": "deploydate"})
+    meta_tag = soup.find("meta", attrs={"name": "deployref"})
     if meta_tag:
         return meta_tag.get("content")
     else:
-        raise ValueError("Meta tag with 'deploydate' name not found on page")
+        raise ValueError("Meta tag with 'deployref' name not found on page")

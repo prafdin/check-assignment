@@ -23,8 +23,8 @@ def test_event_update_site(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
     requests_mock.get(app_url, [
-        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
-        {"text": 'foo<meta name="deploydate" content="20260120013">bar', "status_code": 200}
+        {"text": 'foo<meta name="deployref" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deployref" content="20260120013">bar', "status_code": 200}
     ])
 
     with patch('checker.checks.CICommit') as mock_commit_class:
@@ -44,8 +44,8 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
     requests_mock.get(app_url, [
-        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
-        {"text": 'foo<meta name="deploydate" content="20260120012">var', "status_code": 200}
+        {"text": 'foo<meta name="deployref" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deployref" content="20260120012">var', "status_code": 200}
     ])
 
     with patch('checker.checks.CICommit') as mock_commit_class:
@@ -59,8 +59,8 @@ def test_site_not_updated_automatic(requests_mock, monkeypatch):
 
     monkeypatch.setitem(CONFIG, "wait_automatic_update", 0.1)
     requests_mock.get(app_url, [
-        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200},
-        {"text": 'foo<meta name="deploydate" content="20260120012">bar', "status_code": 200}
+        {"text": 'foo<meta name="deployref" content="20260120012">bar', "status_code": 200},
+        {"text": 'foo<meta name="deployref" content="20260120012">bar', "status_code": 200}
     ])
 
     assert check_no_automatic_site_update(app_url) is True
