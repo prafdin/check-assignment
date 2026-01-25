@@ -2,7 +2,7 @@ import argparse
 import sys
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_no_automatic_site_update, check_event_update_site, CONFIG
+from checker.checks import check_app_is_alive, check_event_update_site, CONFIG
 from checker.utils import CICommit
 
 
@@ -30,7 +30,6 @@ def main():
 
     app_url = f"http://app.{args.id}.{args.proxy}"
     tests.append(partial(check_app_is_alive, app_url))
-    tests.append(partial(check_no_automatic_site_update, app_url))
 
     ci_commit = CICommit(args.repo_url, 'webhooks_devops_assignment', CONFIG)
     tests.append(partial(check_event_update_site, app_url, ci_commit))

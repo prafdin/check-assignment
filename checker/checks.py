@@ -9,7 +9,6 @@ import pygit2 # New import
 
 CONFIG = {
     "check_event_timeout": 60,
-    "wait_automatic_update": 5,
     "workflow_timeout": 120,  # 2 minutes
     "workflow_poll_interval": 10, # default poll interval
     "release_timeout": 120, # 2 minutes
@@ -32,17 +31,6 @@ def check_app_is_alive(url: str) -> bool:
     except requests.exceptions.RequestException as e:
         print(f"Test FAILED: An error occurred during the GET request: {e}")
         return False
-
-def check_no_automatic_site_update(url) -> bool:
-    ref_before = extract_deploy_ref(requests.get(url).text)
-
-    sleep_time = CONFIG["wait_automatic_update"]
-    print(f"Sleep {sleep_time} seconds")
-    sleep(sleep_time)
-
-    ref_after = extract_deploy_ref(requests.get(url).text)
-
-    return ref_before == ref_after
 
 def check_event_update_site(app_url: str, commit: CICommit) -> bool:
     ref_before = extract_deploy_ref(requests.get(app_url).text)

@@ -14,6 +14,7 @@ on:
         options:
           - webhooks_devops_assignment
           - github_actions_assignment
+          - docker_assignment
 
 permissions:
   id-token: write
@@ -102,6 +103,17 @@ jobs:
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         github_token: ${{ secrets.SA_GITHUB_TOKEN }}
         github_actions_assignment: true
+
+    - name: Run check for docker_assignment
+      if: ${{ github.event.inputs.check_assignment == 'docker_assignment' }}
+      uses: ./
+      with:
+        params_file: 'params.json'
+        assignee_login: ${{ github.repository_owner }}
+        repo_name: "prafdin/check-assignment-tests"
+        sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
+        github_token: ${{ secrets.SA_GITHUB_TOKEN }}
+        docker_assignment: true
 
     - name: Run terraform destroy
       if: ${{ github.event.inputs.run_terraform == true && always() }}

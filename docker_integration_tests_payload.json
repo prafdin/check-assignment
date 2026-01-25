@@ -1,0 +1,6 @@
+{
+  "inputs": {
+    "check_assignment": "docker_assignment",
+    "run_terraform": false
+  }
+}
