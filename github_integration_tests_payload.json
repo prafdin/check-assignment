@@ -1,6 +1,6 @@
 {
   "inputs": {
     "check_assignment": "github_actions_assignment",
-    "run_terraform": false
+    "run_terraform": "false"
   }
 }

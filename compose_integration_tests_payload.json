@@ -1,6 +1,6 @@
 {
   "inputs": {
     "check_assignment": "compose_assignment",
-    "run_terraform": false
+    "run_terraform": "false"
   }
 }
