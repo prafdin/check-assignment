@@ -1,14 +1,12 @@
 import argparse
 import sys
-import re
-import json
 from functools import partial
+import re
 
-from checker.checks import check_app_is_alive, check_event_update_site, check_workflow_run_success, \
-    check_required_workflow_files, check_release_updates_site, check_deploy_ref_matches_commit, \
-    check_docker_image_exists, CONFIG, check_tests_passed, push_and_check_workflow
+from checker.checks import CONFIG, check_release_updates_data, push_and_check_workflow, check_tests_passed, \
+    check_docker_image_exists, check_workflow_run_success, check_deploy_ref_matches_commit
 from checker.utils import CICommit
-
+from checker.apps import test_app as app_api
 
 def main():
     parser = argparse.ArgumentParser(description="Check a new assignment.")
@@ -32,6 +30,8 @@ def main():
                         help="Timeout for checks")
     parser.add_argument("--poll_interval", type=int, required=True,
                         help="Poll interval for checks")
+    parser.add_argument("--app-type", type=str, default="default",
+                        help="Application type to check.")
 
     args = parser.parse_args()
 
@@ -44,42 +44,39 @@ def main():
 
     print(f"Checking assignment for repository: {args.repo_url}")
 
-    tests = []
-
     app_url = f"http://app.{args.id}.{args.proxy}"
-
-    tests.append(partial(check_app_is_alive, app_url))
-    
-    ci_commit = CICommit(args.repo_url, 'docker_devops_assignment', CONFIG)
-
-    # Extract owner/repo from the repo_url
+    ci_commit = CICommit(args.repo_url, 'compose_devops_assignment', CONFIG)
     match = re.search(r'git@github.com:(.*)\.git', args.repo_url)
     if not match:
         print("Could not extract repository name from repo_url.")
         sys.exit(1)
     repo_name = match.group(1)
 
+    tests = []
     tests.append(partial(push_and_check_workflow, ci_commit, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_tests_passed, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_docker_image_exists, image_name, str(ci_commit.commit_sha), args.github_token))
 
-    required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
-    tests.append(partial(check_required_workflow_files, args.repo_url, 'docker_devops_assignment', required_workflow_files))
-
-    tests.append(partial(check_release_updates_site, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
+    tests.append(partial(check_release_updates_data, app_api, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
     tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
 
     failed_tests = 0
     for test in tests:
         try:
-            print(f"[{test.func.__name__}] Start test")
-            if test():
-                print(f"[{test.func.__name__}] Test successfully passed")
+            # Assumes test functions are called directly or using partial
+            if 'func' in dir(test):
+                test_name = test.func.__name__
             else:
-                print(f"[{test.func.__name__}] Test failed")
+                test_name = test.__name__
+            
+            print(f"[{test_name}] Start test")
+            if test():
+                print(f"[{test_name}] Test successfully passed")
+            else:
+                print(f"[{test_name}] Test failed")
                 failed_tests += 1
         except Exception as e:
-            print(f"[{test.func.__name__}] Test failed with exception:\n{str(e)}")
+            print(f"[{test.__name__}] Test failed with exception:\n{str(e)}")
             failed_tests += 1
 
     if failed_tests != 0:

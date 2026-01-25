@@ -3,17 +3,9 @@ import sys
 import re
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_workflow_run_success, check_required_workflow_files, check_release_updates_site, check_deploy_ref_matches_commit, check_tests_passed, CONFIG
+from checker.checks import check_app_is_alive, check_workflow_run_success, check_required_workflow_files, \
+    check_release_updates_site, check_deploy_ref_matches_commit, check_tests_passed, CONFIG, push_and_check_workflow
 from checker.utils import CICommit
-
-def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str, github_token: str) -> bool:
-    """
-    Pushes a commit and then checks for the success of the triggered workflow.
-    """
-    print("--- Pushing commit to trigger workflow ---")
-    ci_commit.push()
-    print("--- Commit pushed, now checking for workflow run ---")
-    return check_workflow_run_success(repo_name, commit_sha, github_token)
 
 def main():
     parser = argparse.ArgumentParser(description="Check a new assignment.")

@@ -1,0 +1,72 @@
+---
+- name: Setup compose assignment
+  hosts: all
+  gather_facts: false
+  become: false
+  vars:
+    repo_url: "https://github.com/prafdin/check-assignment-tests.git" # This should be parameterized
+    repo_branch: "compose_devops_assignment" # This should be parameterized
+    repo_dest: "/tmp/compose_devops_assignment"
+    github_sha: "latest" # This should be passed as an extra var
+  tasks:
+    - name: Wait until host is reachable via SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 360
+
+    - name: Update apt cache
+      become: yes
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Ensure git, docker.io, and docker-compose are installed
+      become: yes
+      ansible.builtin.apt:
+        name:
+          - git
+          - docker.io
+          - docker-compose-v2
+        state: present
+        install_recommends: no
+
+    - name: Add ansible user to docker group
+      become: yes
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Clone repository
+      ansible.builtin.git:
+        force: true
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ repo_branch }}"
+        update: yes
+
+    - name: Build Docker image
+      command: "docker build --build-arg DEPLOY_REF={{ github_sha }} -t check-assignment-tests:latest ."
+      args:
+        chdir: "{{ repo_dest }}/app"
+
+    - name: Create deploy directory
+      file:
+        path: /tmp/deploy
+        state: directory
+
+    - name: Copy docker-compose.yaml
+      copy:
+        src: "{{ repo_dest }}/docker-compose.yaml"
+        dest: /tmp/deploy/docker-compose.yaml
+        remote_src: yes
+
+    - name: Down docker-compose
+      command: "docker compose down -v"
+      args:
+        chdir: /tmp/deploy
+
+    - name: Run docker-compose
+      command: "docker compose up -d"
+      args:
+        chdir: /tmp/deploy
+      environment:
+        IMAGE_NAME: "check-assignment-tests:latest"

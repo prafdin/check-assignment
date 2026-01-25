@@ -341,3 +341,76 @@ def check_tests_passed(repo_name: str, commit_sha: str, github_token: str) -> bo
     except (requests.exceptions.RequestException, zipfile.BadZipFile, ET.ParseError) as e:
         print(f"Test FAILED: An error occurred while processing the artifact: {e}")
         return False
+
+
+def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str, github_token: str) -> bool:
+    """
+    Pushes a commit and then checks for the success of the triggered workflow.
+    """
+    print("--- Pushing commit to trigger workflow ---")
+    ci_commit.push()
+    print("--- Commit pushed, now checking for workflow run ---")
+    return check_workflow_run_success(repo_name, commit_sha, github_token)
+
+def check_release_updates_data(app_api, app_url: str, repo_name: str, github_token: str, commit_sha: str) -> bool:
+    print(f"--- Running Test: Check if a new release triggers a data update for repo {repo_name} ---")
+    try:
+        # 1. Get initial data
+        initial_data = app_api.get_data(app_url)
+        print(f"Initial data: {initial_data}")
+
+        # 2. Add some data
+        new_data = app_api.generate_random_data(app_url)
+        if not new_data:
+            print("Test FAILED: Could not add new data.")
+            return False
+
+        # 3. Get data after adding
+        data_after_add = app_api.get_data(app_url)
+        print(f"Data after add: {data_after_add}")
+
+        found = False
+        for comment in data_after_add:
+            if comment['content'] == new_data['content']:
+                found = True
+                break
+        if not found:
+             print(f"Test FAILED: Newly added data not found in the application.")
+             return False
+
+        # 4. Create a release
+        g = Github(github_token)
+        repo = g.get_repo(repo_name)
+        tag_name = time.strftime("ci-%Y%m%d-%H%M%S")
+        repo.create_git_ref(ref=f'refs/tags/{tag_name}', sha=commit_sha)
+        repo.create_git_release(tag=tag_name, name=f"Release {tag_name}", message="Automated release for testing deployment.")
+        
+        def find_run_by_release_tag():
+            runs = repo.get_workflow_runs(event='release')
+            for run in runs:
+                if run.head_branch == tag_name:
+                    return run
+            return None
+
+        if not _wait_for_workflow_run(repo, find_run_by_release_tag):
+            print("Test FAILED: The release did not trigger a successful CD workflow.")
+            return False
+
+        # 5. Get data after release
+        data_after_release = app_api.get_data(app_url)
+        print(f"Data after release: {data_after_release}")
+
+        # 6. Compare data
+        content_before = sorted([c['content'] for c in data_after_add])
+        content_after = sorted([c['content'] for c in data_after_release])
+        if content_before == content_after:
+            print("Test PASSED: Data is consistent after release.")
+            return True
+        else:
+            print("Test FAILED: Data is not consistent after release.")
+            return False
+
+    except Exception as e:
+        print(f"Test FAILED: An error occurred: {e}")
+        return False
+

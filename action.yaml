@@ -30,6 +30,11 @@ inputs:
       Run Docker assignment.
       Default is false.
     default: false
+  compose_assignment:
+    description: |
+      Run Compose assignment.
+      Default is false.
+    default: false
   sa_ssh_pkey:
     description: |
       Private key for GitHub Service account.
@@ -101,6 +106,20 @@ runs:
       shell: bash
       run: |
         python3 -m scripts.check_docker_assignment \
+          --repo_url ${{ steps.parameters.outputs.repo_url }} \
+          --id ${{ steps.parameters.outputs.id }} \
+          --proxy ${{ steps.parameters.outputs.proxy }} \
+          --login "${{ steps.parameters.outputs.login }}" \
+          --app "${{ steps.parameters.outputs.app }}" \
+          --sa_login ${{ steps.parameters.outputs.sa_login }} \
+          --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
+          --github_token "${{ inputs.github_token }}" \
+          --timeout ${{ steps.parameters.outputs.timeout }} \
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
+    - if: ${{ inputs.compose_assignment == 'true' }}
+      shell: bash
+      run: |
+        python3 -m scripts.check_compose_assignment \
           --repo_url ${{ steps.parameters.outputs.repo_url }} \
           --id ${{ steps.parameters.outputs.id }} \
           --proxy ${{ steps.parameters.outputs.proxy }} \
