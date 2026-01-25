@@ -7,6 +7,10 @@ import os
 import shutil
 import pygit2
 import subprocess
+import zipfile
+import io
+import xml.etree.ElementTree as ET
+
 
 CONFIG = {
     "timeout": 120,
@@ -43,13 +47,12 @@ def check_event_update_site(app_url: str, commit: CICommit) -> bool:
 
     return ref_before != ref_after
 
-def _wait_for_workflow_run(repo, find_run_func) -> bool:
+def _get_workflow_run(repo, find_run_func):
     """
-    Waits for a specific workflow run to complete.
-
+    Waits for a specific workflow run to complete and returns the run object.
     :param repo: The repository object from PyGithub.
     :param find_run_func: A function that returns the specific workflow run to wait for, or None if not found.
-    :return: True if the workflow run is found and completes successfully, False otherwise.
+    :return: The completed workflow run object, or None if not found or on error.
     """
     try:
         # Poll to find the run
@@ -63,7 +66,7 @@ def _wait_for_workflow_run(repo, find_run_func) -> bool:
         
         if not workflow_run:
             print("Test FAILED: No workflow run found.")
-            return False
+            return None
 
         print(f"Found workflow run: {workflow_run.html_url}")
 
@@ -73,21 +76,32 @@ def _wait_for_workflow_run(repo, find_run_func) -> bool:
         while workflow_run.status in ["queued", "in_progress"]:
             if time.time() - start_time > timeout:
                 print("Test FAILED: Workflow run timed out.")
-                return False
+                return None  # Return None on timeout
             print(f"Workflow status is '{workflow_run.status}'. Waiting...")
             sleep(CONFIG["poll_interval"])
             workflow_run = repo.get_workflow_run(workflow_run.id)
 
         print(f"Workflow finished with status '{workflow_run.status}' and conclusion '{workflow_run.conclusion}'.")
-        if workflow_run.conclusion == "success":
-            print("Test PASSED: Workflow run completed successfully.")
-            return True
-        else:
-            print(f"Test FAILED: Workflow run conclusion is '{workflow_run.conclusion}'.")
-            return False
+        return workflow_run
             
     except Exception as e:
         print(f"Test FAILED: An error occurred while waiting for the workflow run: {e}")
+        return None
+
+def _wait_for_workflow_run(repo, find_run_func) -> bool:
+    """
+    Waits for a specific workflow run to complete.
+
+    :param repo: The repository object from PyGithub.
+    :param find_run_func: A function that returns the specific workflow run to wait for, or None if not found.
+    :return: True if the workflow run is found and completes successfully, False otherwise.
+    """
+    workflow_run = _get_workflow_run(repo, find_run_func)
+    if workflow_run and workflow_run.conclusion == "success":
+        print("Test PASSED: Workflow run completed successfully.")
+        return True
+    else:
+        print(f"Test FAILED: Workflow run conclusion is '{workflow_run.conclusion if workflow_run else 'unknown'}'.")
         return False
 
 def check_workflow_run_success(repo_name: str, commit_sha: str, github_token: str) -> bool:
@@ -260,4 +274,70 @@ def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> b
         return False
     except Exception as e:
         print(f"Test FAILED: An error occurred during Docker CLI operations: {e}")
+        return False
+
+
+def check_tests_passed(repo_name: str, commit_sha: str, github_token: str) -> bool:
+    print(f"--- Running Test: Check for test results artifact for commit {commit_sha} in repo {repo_name} ---")
+    g = Github(github_token)
+    repo = g.get_repo(repo_name)
+
+    def find_run_by_commit():
+        runs = repo.get_workflow_runs(head_sha=commit_sha)
+        return runs[0] if runs.totalCount > 0 else None
+
+    workflow_run = _get_workflow_run(repo, find_run_by_commit)
+
+    if not workflow_run:
+        print("Test FAILED: No workflow run found for the commit.")
+        return False
+
+    if workflow_run.conclusion != "success":
+        print(f"Test FAILED: Workflow run conclusion is '{workflow_run.conclusion}'.")
+        return False
+
+    artifacts = workflow_run.get_artifacts()
+    test_result_artifact = None
+    for artifact in artifacts:
+        if artifact.name == "test_result":
+            test_result_artifact = artifact
+            break
+
+    if not test_result_artifact:
+        print("Test FAILED: No 'test_result' artifact found.")
+        return False
+
+    print("Found 'test_result' artifact. Downloading and inspecting...")
+
+    # The archive_download_url is a temporary URL to download the artifact
+    # It requires authentication, which is handled by passing the token in the headers
+    headers = {'Authorization': f'token {github_token}'}
+    response = requests.get(test_result_artifact.archive_download_url, headers=headers, allow_redirects=True)
+    
+    try:
+        response.raise_for_status()
+        zip_bytes = io.BytesIO(response.content)
+
+        with zipfile.ZipFile(zip_bytes) as z:
+            for filename in z.namelist():
+                if filename.endswith('.xml'):
+                    with z.open(filename) as xml_file:
+                        tree = ET.parse(xml_file)
+                        root = tree.getroot()
+                        
+                        for testsuite in root.iter('testsuite'):
+                            errors = testsuite.get('errors')
+                            failures = testsuite.get('failures')
+                            skipped = testsuite.get('skipped')
+                            tests = testsuite.get('tests')
+                            
+                            if errors == "0" and failures == "0" and skipped == "0" and tests and int(tests) > 0:
+                                print(f"Test PASSED: Found testsuite with errors={errors}, failures={failures}, skipped={skipped}, tests={tests}")
+                                return True
+        
+        print("Test FAILED: No valid test suite found in the test_result artifact.")
+        return False
+
+    except (requests.exceptions.RequestException, zipfile.BadZipFile, ET.ParseError) as e:
+        print(f"Test FAILED: An error occurred while processing the artifact: {e}")
         return False

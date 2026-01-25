@@ -4,7 +4,9 @@ import re
 import json
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_event_update_site, check_workflow_run_success, check_required_workflow_files, check_release_updates_site, check_deploy_ref_matches_commit, check_docker_image_exists, CONFIG
+from checker.checks import check_app_is_alive, check_event_update_site, check_workflow_run_success, \
+    check_required_workflow_files, check_release_updates_site, check_deploy_ref_matches_commit, \
+    check_docker_image_exists, CONFIG, check_tests_passed
 from checker.utils import CICommit
 
 def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str, github_token: str) -> bool:
@@ -66,6 +68,7 @@ def main():
     repo_name = match.group(1)
 
     tests.append(partial(push_and_check_workflow, ci_commit, repo_name, str(ci_commit.commit_sha), args.github_token))
+    tests.append(partial(check_tests_passed, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_docker_image_exists, image_name, str(ci_commit.commit_sha), args.github_token))
 
     required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
