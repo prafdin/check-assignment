@@ -1,12 +1,13 @@
 import argparse
+import importlib
+import re
 import sys
 from functools import partial
-import re
 
 from checker.checks import CONFIG, check_release_updates_data, push_and_check_workflow, check_tests_passed, \
-    check_docker_image_exists, check_workflow_run_success, check_deploy_ref_matches_commit
+    check_docker_image_exists, check_deploy_ref_matches_commit
 from checker.utils import CICommit
-from checker.apps import test_app as app_api
+
 
 def main():
     parser = argparse.ArgumentParser(description="Check a new assignment.")
@@ -30,8 +31,6 @@ def main():
                         help="Timeout for checks")
     parser.add_argument("--poll_interval", type=int, required=True,
                         help="Poll interval for checks")
-    parser.add_argument("--app-type", type=str, default="default",
-                        help="Application type to check.")
 
     args = parser.parse_args()
 
@@ -43,6 +42,13 @@ def main():
     CONFIG["poll_interval"] = args.poll_interval
 
     print(f"Checking assignment for repository: {args.repo_url}")
+
+    try:
+        snake_case_app_name = args.app.replace('-', '_')
+        app_api = importlib.import_module(f"checker.apps.{snake_case_app_name}")
+    except ImportError:
+        print(f"Could not import app API for {args.app}")
+        sys.exit(1)
 
     app_url = f"http://app.{args.id}.{args.proxy}"
     ci_commit = CICommit(args.repo_url, 'compose_devops_assignment', CONFIG)
@@ -56,7 +62,6 @@ def main():
     tests.append(partial(push_and_check_workflow, ci_commit, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_tests_passed, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_docker_image_exists, image_name, str(ci_commit.commit_sha), args.github_token))
-
     tests.append(partial(check_release_updates_data, app_api, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
     tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
 
