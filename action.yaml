@@ -100,6 +100,8 @@ runs:
           --repo_url ${{ steps.parameters.outputs.repo_url }} \
           --id ${{ steps.parameters.outputs.id }} \
           --proxy ${{ steps.parameters.outputs.proxy }} \
+          --login "${{ steps.parameters.outputs.login }}" \
+          --app "${{ steps.parameters.outputs.app }}" \
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
           --github_token "${{ inputs.github_token }}"

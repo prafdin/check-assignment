@@ -5,7 +5,8 @@
   "users": [
     {
       "login": "prafdin",
-      "id": "prafdin"
+      "id": "prafdin",
+      "app": "check-assignment-tests"
     }
   ]
 }

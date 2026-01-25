@@ -36,6 +36,8 @@ if __name__ == '__main__':
     else:
         out_parameters["authorized"] = True
         out_parameters["id"] = user["id"]
+        out_parameters["login"] = user["login"]
+        out_parameters["app"] = user["app"]
 
     out_parameters["proxy"] = params["proxy"]
     out_parameters["sa_login"] = params["sa_login"]

@@ -6,6 +6,7 @@ from .utils import extract_deploy_ref, CICommit
 import os
 import shutil
 import pygit2 # New import
+import subprocess # Added import
 
 CONFIG = {
     "check_event_timeout": 60,
@@ -13,6 +14,8 @@ CONFIG = {
     "workflow_poll_interval": 10, # default poll interval
     "release_timeout": 120, # 2 minutes
     "release_poll_interval": 15, # 15 seconds
+    "docker_timeout": 180, # 3 minutes
+    "docker_poll_interval": 15, # 15 seconds
     "sa_login": "Name Example",
     "sa_mail": "e@mail.com"
 }
@@ -219,4 +222,49 @@ def check_deploy_ref_matches_commit(app_url: str, expected_commit_sha: str) -> b
     else:
         print(f"Test FAILED: Deploy ref did not match expected SHA '{expected_commit_sha}'")
         return False
+
+
+def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> bool:
+    print(f"--- Running Test: Check if Docker image ghcr.io/{image_name}:{tag} exists via Docker CLI ---")
+    
+    timeout = CONFIG.get("docker_timeout", 180)
+    poll_interval = CONFIG.get("docker_poll_interval", 15)
+    start_time = time.time()
+    
+    full_image_name = f"ghcr.io/{image_name}:{tag}"
+    sa_login_username = CONFIG["sa_login"]
+    
+    try:
+        login_command = ["docker", "login", "ghcr.io", "-u", sa_login_username, "--password-stdin"]
+        login_result = subprocess.run(login_command, input=github_token, text=True, capture_output=True)
+
+        if login_result.returncode != 0:
+            print(f"Test FAILED: Docker login to ghcr.io failed: {login_result.stderr}")
+            return False
+
+        print(f"Waiting for up to {timeout} seconds for image {full_image_name} to be published...")
+        while time.time() - start_time < timeout:
+            inspect_command = ["docker", "manifest", "inspect", full_image_name]
+            inspect_result = subprocess.run(inspect_command, capture_output=True, text=True)
+
+            print(f"Checking for manifest... (elapsed: {int(time.time() - start_time)}s)")
+
+            if inspect_result.returncode == 0:
+                print(f"Test PASSED: Docker image {full_image_name} found.")
+                subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True) # Logout on success
+                return True
+            
+            sleep(poll_interval)
+        
+        subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True) # Logout on timeout
+        print(f"Test FAILED: Docker image {full_image_name} not found after {timeout} seconds.")
+        return False
+
+    except FileNotFoundError:
+        print("Test FAILED: `docker` command not found. Please ensure Docker is installed and in your PATH.")
+        return False
+    except Exception as e:
+        print(f"Test FAILED: An error occurred during Docker CLI operations: {e}")
+        return False
+
 
