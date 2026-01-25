@@ -25,6 +25,7 @@
           - git
           - docker.io
           - docker-compose-v2
+          - docker-buildx
         state: present
         install_recommends: no
 
@@ -43,6 +44,17 @@
         version: "{{ repo_branch }}"
         update: yes
 
+    - name: Make install script executable
+      ansible.builtin.file:
+        path: "{{ repo_dest }}/install-frp.sh"
+        mode: '0755'
+
+    - name: Run install-frp.sh
+      become: yes
+      ansible.builtin.command:
+        cmd: "./install-frp.sh course.prafdin.ru devops prafdin"
+        chdir: "{{ repo_dest }}"
+
     - name: Build Docker image
       command: "docker build --build-arg DEPLOY_REF={{ github_sha }} -t check-assignment-tests:latest ."
       args:
@@ -60,9 +72,11 @@
         remote_src: yes
 
     - name: Down docker-compose
-      command: "docker compose down -v"
+      shell: "docker compose down -v || true"
       args:
         chdir: /tmp/deploy
+      environment:
+        IMAGE_NAME: "check-assignment-tests:latest"
 
     - name: Run docker-compose
       command: "docker compose up -d"
