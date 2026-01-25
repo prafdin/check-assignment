@@ -38,48 +38,48 @@ jobs:
         add_to_summary: 'true'
 
     - uses: hashicorp/setup-terraform@v3
-      if: ${{ github.event.inputs.run_terraform == true}}
+      if: ${{ github.event.inputs.run_terraform == 'true'}}
       with:
         terraform_version: "1.14.0"
 
     - name: Setup YC_TOKEN for act run
-      if: ${{ github.event.inputs.run_terraform == true && env.ACT == 'true' }}
+      if: ${{ github.event.inputs.run_terraform == 'true' && env.ACT == 'true' }}
       run:
         echo "YC_TOKEN=${{ secrets.YC_TOKEN }}" >> $GITHUB_ENV
 
     - name: Issue YC_TOKEN for GitHub run
-      if: ${{ github.event.inputs.run_terraform == true && !env.ACT }}
+      if: ${{ github.event.inputs.run_terraform == 'true' && !env.ACT }}
       id: get-iam-token
       uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
       with:
         yc-sa-id: ${{ secrets.YC_SA_ID }}
 
     - name: Setup YC_TOKEN for GitHub run
-      if: ${{ github.event.inputs.run_terraform == true && !env.ACT }}
+      if: ${{ github.event.inputs.run_terraform == 'true' && !env.ACT }}
       run:
         echo "YC_TOKEN=${{ steps.get-iam-token.outputs.token }}" >> $GITHUB_ENV
 
     - name: Run terraform apply
-      if: ${{ github.event.inputs.run_terraform == true }}
+      if: ${{ github.event.inputs.run_terraform == 'true' }}
       run: |
         cd ${{ env.TERRAFORM_WORKING_DIR }}
         terraform init
         terraform apply -auto-approve
 
     - name: Add record to /etc/hosts
-      if: ${{ github.event.inputs.run_terraform == true }}
+      if: ${{ github.event.inputs.run_terraform == 'true' }}
       run: |
         cd ${{ env.TERRAFORM_WORKING_DIR }}
         echo "$(terraform output -raw external_ip_address_vm) wh-devops.local" | sudo tee -a /etc/hosts
 
     - name: Setup SSH Agent
-      if: ${{ github.event.inputs.run_terraform == true }}
+      if: ${{ github.event.inputs.run_terraform == 'true' }}
       uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ secrets.SSH_VM_PRIVATE_KEY }}
 
     - name: Setup with Ansible
-      if: ${{ github.event.inputs.run_terraform == true }}
+      if: ${{ github.event.inputs.run_terraform == 'true' }}
       run: |
         cd ${{ env.ANSIBLE_WORKING_DIR }}
         ansible-playbook setup.yaml
@@ -128,7 +128,7 @@ jobs:
         compose_assignment: true
 
     - name: Run terraform destroy
-      if: ${{ github.event.inputs.run_terraform == true && always() }}
+      if: ${{ github.event.inputs.run_terraform == 'true' && always() }}
       run: |
         cd ${{ env.TERRAFORM_WORKING_DIR }}
         terraform state rm yandex_vpc_subnet.subnet || true
