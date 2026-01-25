@@ -36,6 +36,10 @@
         groups: docker
         append: yes
 
+    - name: Reset ssh connection to allow user changes to affect ansible user
+      ansible.builtin.meta:
+        reset_connection
+
     - name: Clone repository
       ansible.builtin.git:
         force: true
