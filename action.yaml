@@ -82,7 +82,9 @@ runs:
           --id ${{ steps.parameters.outputs.id }} \
           --proxy ${{ steps.parameters.outputs.proxy }} \
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
-          --sa_mail "${{ steps.parameters.outputs.sa_mail }}"
+          --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
+          --timeout ${{ steps.parameters.outputs.timeout }} \
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
     - if: ${{ inputs.github_actions_assignment == 'true' }}
       shell: bash
       run: |
@@ -92,7 +94,9 @@ runs:
           --proxy ${{ steps.parameters.outputs.proxy }} \
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
-          --github_token "${{ inputs.github_token }}"
+          --github_token "${{ inputs.github_token }}" \
+          --timeout ${{ steps.parameters.outputs.timeout }} \
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
     - if: ${{ inputs.docker_assignment == 'true' }}
       shell: bash
       run: |
@@ -104,4 +108,6 @@ runs:
           --app "${{ steps.parameters.outputs.app }}" \
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
-          --github_token "${{ inputs.github_token }}"
+          --github_token "${{ inputs.github_token }}" \
+          --timeout ${{ steps.parameters.outputs.timeout }} \
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }}

@@ -39,7 +39,8 @@ def test_event_update_site(requests_mock, monkeypatch):
 
 
 
-    monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
+    monkeypatch.setitem(CONFIG, "timeout", 0.1)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
 
     requests_mock.get(app_url, [
 
@@ -81,7 +82,8 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
 
 
-    monkeypatch.setitem(CONFIG, "check_event_timeout", 0.1)
+    monkeypatch.setitem(CONFIG, "timeout", 0.1)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
 
     requests_mock.get(app_url, [
 

@@ -34,6 +34,10 @@ def main():
                         help="GitHub service account login")
     parser.add_argument("--github_token", type=str, required=True,
                         help="GitHub token for API requests.")
+    parser.add_argument("--timeout", type=int, required=True,
+                        help="Timeout for checks")
+    parser.add_argument("--poll_interval", type=int, required=True,
+                        help="Poll interval for checks")
 
     args = parser.parse_args()
 
@@ -41,6 +45,8 @@ def main():
 
     CONFIG["sa_login"] = args.sa_login
     CONFIG["sa_mail"] = args.sa_mail
+    CONFIG["timeout"] = args.timeout
+    CONFIG["poll_interval"] = args.poll_interval
 
     print(f"Checking assignment for repository: {args.repo_url}")
 

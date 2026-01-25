@@ -5,17 +5,12 @@ from github import Github
 from .utils import extract_deploy_ref, CICommit
 import os
 import shutil
-import pygit2 # New import
-import subprocess # Added import
+import pygit2
+import subprocess
 
 CONFIG = {
-    "check_event_timeout": 60,
-    "workflow_timeout": 120,  # 2 minutes
-    "workflow_poll_interval": 10, # default poll interval
-    "release_timeout": 120, # 2 minutes
-    "release_poll_interval": 15, # 15 seconds
-    "docker_timeout": 180, # 3 minutes
-    "docker_poll_interval": 15, # 15 seconds
+    "timeout": 120,
+    "poll_interval": 15,
     "sa_login": "Name Example",
     "sa_mail": "e@mail.com"
 }
@@ -40,7 +35,7 @@ def check_event_update_site(app_url: str, commit: CICommit) -> bool:
 
     commit.push()
 
-    sleep_time = CONFIG["check_event_timeout"]
+    sleep_time = CONFIG["timeout"]
     print(f"Sleep {sleep_time} seconds")
     sleep(sleep_time)
 
@@ -64,7 +59,7 @@ def _wait_for_workflow_run(repo, find_run_func) -> bool:
             if run:
                 workflow_run = run
                 break
-            sleep(CONFIG["workflow_poll_interval"])
+            sleep(CONFIG["poll_interval"])
         
         if not workflow_run:
             print("Test FAILED: No workflow run found.")
@@ -73,14 +68,14 @@ def _wait_for_workflow_run(repo, find_run_func) -> bool:
         print(f"Found workflow run: {workflow_run.html_url}")
 
         # Wait for the workflow to complete
-        timeout = CONFIG["workflow_timeout"]
+        timeout = CONFIG["timeout"]
         start_time = time.time()
         while workflow_run.status in ["queued", "in_progress"]:
             if time.time() - start_time > timeout:
                 print("Test FAILED: Workflow run timed out.")
                 return False
             print(f"Workflow status is '{workflow_run.status}'. Waiting...")
-            sleep(CONFIG["workflow_poll_interval"])
+            sleep(CONFIG["poll_interval"])
             workflow_run = repo.get_workflow_run(workflow_run.id)
 
         print(f"Workflow finished with status '{workflow_run.status}' and conclusion '{workflow_run.conclusion}'.")
@@ -190,8 +185,8 @@ def check_release_updates_site(app_url: str, repo_name: str, github_token: str, 
         print("CD workflow completed successfully. Now checking for site update...")
 
         # 4. Wait for deployment by polling
-        timeout = CONFIG["release_timeout"]
-        poll_interval = CONFIG["release_poll_interval"]
+        timeout = CONFIG["timeout"]
+        poll_interval = CONFIG["poll_interval"]
         start_time = time.time()
         
         print(f"Waiting for up to {timeout} seconds for deployment...")
@@ -227,8 +222,8 @@ def check_deploy_ref_matches_commit(app_url: str, expected_commit_sha: str) -> b
 def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> bool:
     print(f"--- Running Test: Check if Docker image ghcr.io/{image_name}:{tag} exists via Docker CLI ---")
     
-    timeout = CONFIG.get("docker_timeout", 180)
-    poll_interval = CONFIG.get("docker_poll_interval", 15)
+    timeout = CONFIG["timeout"]
+    poll_interval = CONFIG["poll_interval"]
     start_time = time.time()
     
     full_image_name = f"ghcr.io/{image_name}:{tag}"
@@ -266,5 +261,3 @@ def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> b
     except Exception as e:
         print(f"Test FAILED: An error occurred during Docker CLI operations: {e}")
         return False
-
-

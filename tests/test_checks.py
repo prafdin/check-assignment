@@ -3,7 +3,9 @@ from unittest.mock import patch, MagicMock
 from checker.checks import check_workflow_run_success, CONFIG
 
 
-def test_check_workflow_run_success_success():
+def test_check_workflow_run_success_success(monkeypatch):
+    monkeypatch.setitem(CONFIG, "timeout", 1)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
     with patch('checker.checks.Github') as mock_github:
         # Mock the Github API response
         mock_repo = MagicMock()
@@ -24,7 +26,9 @@ def test_check_workflow_run_success_success():
         # Call the function and assert the result
         assert check_workflow_run_success("owner/repo", "commit_sha", "fake_token") is True
 
-def test_check_workflow_run_success_failure():
+def test_check_workflow_run_success_failure(monkeypatch):
+    monkeypatch.setitem(CONFIG, "timeout", 1)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
     with patch('checker.checks.Github') as mock_github:
         # Mock the Github API response
         mock_repo = MagicMock()
@@ -47,7 +51,7 @@ def test_check_workflow_run_success_failure():
 
 def test_check_workflow_run_not_found(monkeypatch):
     with patch('checker.checks.Github') as mock_github:
-        monkeypatch.setitem(CONFIG, "workflow_poll_interval", 0.1)
+        monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
 
         # Mock the Github API response
         mock_repo = MagicMock()
@@ -65,8 +69,8 @@ def test_check_workflow_run_not_found(monkeypatch):
 def test_check_workflow_run_timeout(monkeypatch):
     with patch('checker.checks.Github') as mock_github:
 
-        monkeypatch.setitem(CONFIG, "workflow_poll_interval", 0.1)
-        monkeypatch.setitem(CONFIG, "workflow_timeout", 0.5)
+        monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
+        monkeypatch.setitem(CONFIG, "timeout", 0.5)
         # Mock the Github API response
         mock_repo = MagicMock()
         mock_workflow_run = MagicMock()
