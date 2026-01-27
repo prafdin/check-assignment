@@ -1,5 +1,6 @@
 import tempfile
 import pygit2
+import time
 from bs4 import BeautifulSoup
 from typing import Any, Dict
 
@@ -34,6 +35,17 @@ class CICommit:
     def push(self):
         remote = self.repo.remotes["origin"]
         remote.push([self.branch_ref], callbacks=self.callbacks)
+
+    def push_to_autotest_branch(self):
+        shortdate = time.strftime("%Y%m%d%H%M")
+        target_branch_name = f"{self.branch}_autotests{shortdate}"
+        target_branch_ref = f"refs/heads/{target_branch_name}"
+
+        # Create a new reference (branch) in the local repository pointing to the current commit
+        self.repo.references.create(target_branch_ref, self.commit_sha, force=True)
+
+        remote = self.repo.remotes["origin"]
+        remote.push([target_branch_ref], callbacks=self.callbacks)
 
 
 def extract_deploy_ref(body) -> str:

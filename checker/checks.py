@@ -49,7 +49,7 @@ def _run_with_timeout(condition, timeout: int, poll_interval: int) -> bool:
 def check_event_update_site(app_url: str, commit: CICommit) -> bool:
     ref_before = extract_deploy_ref(requests.get(app_url).text)
 
-    commit.push()
+    commit.push_to_autotest_branch()
 
     def check_for_update():
         ref_after = extract_deploy_ref(requests.get(app_url).text)
@@ -355,7 +355,7 @@ def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str
     Pushes a commit and then checks for the success of the triggered workflow.
     """
     print("--- Pushing commit to trigger workflow ---")
-    ci_commit.push()
+    ci_commit.push_to_autotest_branch()
     print("--- Commit pushed, now checking for workflow run ---")
     return check_workflow_run_success(repo_name, commit_sha, github_token)
 

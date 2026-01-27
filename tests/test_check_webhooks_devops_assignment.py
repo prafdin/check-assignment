@@ -70,7 +70,7 @@ def test_event_update_site(requests_mock, monkeypatch):
 
         # We can also assert that the push method was called.
 
-        mock_commit_instance.push.assert_called_once()
+        mock_commit_instance.push_to_autotest_branch.assert_called_once()
 
 
 
@@ -101,7 +101,7 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
         assert check_event_update_site(app_url, mock_commit_instance) is False
 
-        mock_commit_instance.push.assert_called_once()
+        mock_commit_instance.push_to_autotest_branch.assert_called_once()
 
 
 
@@ -119,6 +119,6 @@ def test_commit_push():
 
     ci_commit = CICommit("git@github.com:prafdin/check-assignment-tests.git", "webhooks_devops_assignment", CONFIG)
 
-    ci_commit.push()
+    ci_commit.push_to_autotest_branch()
 
     assert True is True
