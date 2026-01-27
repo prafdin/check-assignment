@@ -34,18 +34,33 @@ def check_app_is_alive(url: str) -> bool:
         print(f"Test FAILED: An error occurred during the GET request: {e}")
         return False
 
+
+def _run_with_timeout(condition, timeout: int, poll_interval: int) -> bool:
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        print(f"Checking condition... (elapsed: {int(time.time() - start_time)}s)")
+        if condition():
+            return True
+        sleep(poll_interval)
+    print(f"Timeout of {timeout} seconds reached.")
+    return False
+
+
 def check_event_update_site(app_url: str, commit: CICommit) -> bool:
     ref_before = extract_deploy_ref(requests.get(app_url).text)
 
     commit.push()
 
-    sleep_time = CONFIG["timeout"]
-    print(f"Sleep {sleep_time} seconds")
-    sleep(sleep_time)
+    def check_for_update():
+        ref_after = extract_deploy_ref(requests.get(app_url).text)
+        return ref_before != ref_after
 
-    ref_after = extract_deploy_ref(requests.get(app_url).text)
-
-    return ref_before != ref_after
+    if _run_with_timeout(check_for_update, CONFIG["timeout"], CONFIG["poll_interval"]):
+        print("Test PASSED: Site was updated.")
+        return True
+    else:
+        print(f"Test FAILED: Site was not updated after {CONFIG['timeout']} seconds.")
+        return False
 
 def _get_workflow_run(repo, find_run_func):
     """
@@ -199,22 +214,20 @@ def check_release_updates_site(app_url: str, repo_name: str, github_token: str, 
         print("CD workflow completed successfully. Now checking for site update...")
 
         # 4. Wait for deployment by polling
-        timeout = CONFIG["timeout"]
-        poll_interval = CONFIG["poll_interval"]
-        start_time = time.time()
-        
-        print(f"Waiting for up to {timeout} seconds for deployment...")
-        while time.time() - start_time < timeout:
-            print(f"Checking for update... (elapsed: {int(time.time() - start_time)}s)")
+        print(f"Waiting for up to {CONFIG['timeout']} seconds for deployment...")
+
+        def check_for_update():
             ref_after = extract_deploy_ref(requests.get(app_url).text)
             if ref_before != ref_after:
                 print(f"Test PASSED: Deploy ref changed from '{ref_before}' to '{ref_after}'.")
                 return True
-            sleep(poll_interval)
+            return False
 
-        # 5. If loop finishes, timeout was reached
-        print(f"Test FAILED: Deploy ref '{ref_before}' did not change after {timeout} seconds.")
-        return False
+        if _run_with_timeout(check_for_update, CONFIG["timeout"], CONFIG["poll_interval"]):
+            return True
+        else:
+            print(f"Test FAILED: Deploy ref '{ref_before}' did not change after {CONFIG['timeout']} seconds.")
+            return False
 
     except Exception as e:
         print(f"Test FAILED: An error occurred: {e}")
@@ -235,14 +248,10 @@ def check_deploy_ref_matches_commit(app_url: str, expected_commit_sha: str) -> b
 
 def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> bool:
     print(f"--- Running Test: Check if Docker image ghcr.io/{image_name}:{tag} exists via Docker CLI ---")
-    
-    timeout = CONFIG["timeout"]
-    poll_interval = CONFIG["poll_interval"]
-    start_time = time.time()
-    
+
     full_image_name = f"ghcr.io/{image_name}:{tag}"
     sa_login_username = CONFIG["sa_login"]
-    
+
     try:
         login_command = ["docker", "login", "ghcr.io", "-u", sa_login_username, "--password-stdin"]
         login_result = subprocess.run(login_command, input=github_token, text=True, capture_output=True)
@@ -251,23 +260,21 @@ def check_docker_image_exists(image_name: str, tag: str, github_token: str) -> b
             print(f"Test FAILED: Docker login to ghcr.io failed: {login_result.stderr}")
             return False
 
-        print(f"Waiting for up to {timeout} seconds for image {full_image_name} to be published...")
-        while time.time() - start_time < timeout:
+        print(f"Waiting for up to {CONFIG['timeout']} seconds for image {full_image_name} to be published...")
+
+        def check_for_image():
             inspect_command = ["docker", "manifest", "inspect", full_image_name]
             inspect_result = subprocess.run(inspect_command, capture_output=True, text=True)
+            return inspect_result.returncode == 0
 
-            print(f"Checking for manifest... (elapsed: {int(time.time() - start_time)}s)")
-
-            if inspect_result.returncode == 0:
-                print(f"Test PASSED: Docker image {full_image_name} found.")
-                subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True) # Logout on success
-                return True
-            
-            sleep(poll_interval)
-        
-        subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True) # Logout on timeout
-        print(f"Test FAILED: Docker image {full_image_name} not found after {timeout} seconds.")
-        return False
+        if _run_with_timeout(check_for_image, CONFIG["timeout"], CONFIG["poll_interval"]):
+            print(f"Test PASSED: Docker image {full_image_name} found.")
+            subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True)  # Logout on success
+            return True
+        else:
+            subprocess.run(["docker", "logout", "ghcr.io"], capture_output=True)  # Logout on timeout
+            print(f"Test FAILED: Docker image {full_image_name} not found after {CONFIG['timeout']} seconds.")
+            return False
 
     except FileNotFoundError:
         print("Test FAILED: `docker` command not found. Please ensure Docker is installed and in your PATH.")
