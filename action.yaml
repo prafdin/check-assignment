@@ -77,7 +77,7 @@ runs:
     - name: Install Project
       shell: bash
       run: |
-        pip install .
+        pip install $GITHUB_ACTION_PATH
 
     - if: ${{ inputs.webhooks_devops_assignment == 'true' }}
       shell: bash
