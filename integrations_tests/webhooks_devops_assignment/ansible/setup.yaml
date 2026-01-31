@@ -50,7 +50,7 @@
     - name: Run install-frp.sh
       become: yes
       ansible.builtin.command:
-        cmd: "./install-frp.sh course.prafdin.ru devops sa3000udp"
+        cmd: "./install-frp.sh course.prafdin.ru devops prafdin"
         chdir: "{{ repo_dest }}"
 
     - name: Run make run-listener
