@@ -4,7 +4,7 @@
   gather_facts: false
   become: yes
   vars:
-    repo_url: "https://github.com/SA3000UDP/check-assignment-tests.git"
+    repo_url: "https://github.com/prafdin/check-assignment-tests.git"
     repo_branch: "webhooks_devops_assignment"
     repo_dest: "/tmp/webhooks_devops_assignment"
   tasks:
