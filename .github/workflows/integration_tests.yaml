@@ -89,8 +89,9 @@ jobs:
       uses: ./
       with:
         params_file: 'params.json'
-        assignee_login: ${{ github.repository_owner }}
-        repo_name: "prafdin/check-assignment-tests"
+        assignee_login: ${{ vars.ASSIGNEE_LOGIN }}
+        repo_name: ${{ vars.REPO_NAME }}
+        branch_name: 'lab1'
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         webhooks_devops_assignment: true
 
@@ -99,8 +100,9 @@ jobs:
       uses: ./
       with:
         params_file: 'params.json'
-        assignee_login: ${{ github.repository_owner }}
-        repo_name: "prafdin/check-assignment-tests"
+        assignee_login: ${{ vars.ASSIGNEE_LOGIN }}
+        repo_name: ${{ vars.REPO_NAME }}
+        branch_name: 'lab2'
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         github_token: ${{ secrets.SA_GITHUB_TOKEN }}
         github_actions_assignment: true
@@ -110,8 +112,9 @@ jobs:
       uses: ./
       with:
         params_file: 'params.json'
-        assignee_login: ${{ github.repository_owner }}
-        repo_name: "prafdin/check-assignment-tests"
+        assignee_login: ${{ vars.ASSIGNEE_LOGIN }}
+        repo_name: ${{ vars.REPO_NAME }}
+        branch_name: 'lab3'
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         github_token: ${{ secrets.SA_GITHUB_TOKEN }}
         docker_assignment: true
@@ -121,8 +124,9 @@ jobs:
       uses: ./
       with:
         params_file: 'params.json'
-        assignee_login: ${{ github.repository_owner }}
-        repo_name: "prafdin/check-assignment-tests"
+        assignee_login: ${{ vars.ASSIGNEE_LOGIN }}
+        repo_name: ${{ vars.REPO_NAME }}
+        branch_name: 'lab4'
         sa_ssh_pkey: ${{ secrets.SSH_PRIVATE_KEY }}
         github_token: ${{ secrets.SA_GITHUB_TOKEN }}
         compose_assignment: true
