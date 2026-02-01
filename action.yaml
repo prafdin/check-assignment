@@ -35,6 +35,10 @@ inputs:
       Run Compose assignment.
       Default is false.
     default: false
+  branch_name:
+    description: |
+      The branch name for the assignment.
+    default: webhooks_devops_assignment
   sa_ssh_pkey:
     description: |
       Private key for GitHub Service account.
@@ -89,7 +93,8 @@ runs:
           --sa_login ${{ steps.parameters.outputs.sa_login }} \
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
           --timeout ${{ steps.parameters.outputs.timeout }} \
-          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }} \
+          --branch_name ${{ inputs.branch_name }}
     - if: ${{ inputs.github_actions_assignment == 'true' }}
       shell: bash
       run: |
@@ -101,7 +106,8 @@ runs:
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
           --github_token "${{ inputs.github_token }}" \
           --timeout ${{ steps.parameters.outputs.timeout }} \
-          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }} \
+          --branch_name ${{ inputs.branch_name }}
     - if: ${{ inputs.docker_assignment == 'true' }}
       shell: bash
       run: |
@@ -115,7 +121,8 @@ runs:
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
           --github_token "${{ inputs.github_token }}" \
           --timeout ${{ steps.parameters.outputs.timeout }} \
-          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }} \
+          --branch_name ${{ inputs.branch_name }}
     - if: ${{ inputs.compose_assignment == 'true' }}
       shell: bash
       run: |
@@ -129,4 +136,5 @@ runs:
           --sa_mail "${{ steps.parameters.outputs.sa_mail }}" \
           --github_token "${{ inputs.github_token }}" \
           --timeout ${{ steps.parameters.outputs.timeout }} \
-          --poll_interval ${{ steps.parameters.outputs.poll_interval }}
+          --poll_interval ${{ steps.parameters.outputs.poll_interval }} \
+          --branch_name ${{ inputs.branch_name }}

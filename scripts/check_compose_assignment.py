@@ -31,6 +31,8 @@ def main():
                         help="Timeout for checks")
     parser.add_argument("--poll_interval", type=int, required=True,
                         help="Poll interval for checks")
+    parser.add_argument("--branch_name", type=str, required=True,
+                        help="Branch name for CI commit")
 
     args = parser.parse_args()
 
@@ -51,7 +53,7 @@ def main():
         sys.exit(1)
 
     app_url = f"http://app.{args.id}.{args.proxy}"
-    ci_commit = CICommit(args.repo_url, 'compose_devops_assignment', CONFIG)
+    ci_commit = CICommit(args.repo_url, args.branch_name, CONFIG)
     match = re.search(r'git@github.com:(.*)\.git', args.repo_url)
     if not match:
         print("Could not extract repository name from repo_url.")
@@ -68,20 +70,14 @@ def main():
     failed_tests = 0
     for test in tests:
         try:
-            # Assumes test functions are called directly or using partial
-            if 'func' in dir(test):
-                test_name = test.func.__name__
-            else:
-                test_name = test.__name__
-            
-            print(f"[{test_name}] Start test")
+            print(f"[{test.func.__name__}] Start test")
             if test():
-                print(f"[{test_name}] Test successfully passed")
+                print(f"[{test.func.__name__}] Test successfully passed")
             else:
-                print(f"[{test_name}] Test failed")
+                print(f"[{test.func.__name__}] Test failed")
                 failed_tests += 1
         except Exception as e:
-            print(f"[{test.__name__}] Test failed with exception:\n{str(e)}")
+            print(f"[{test.func.__name__}] Test failed with exception:\n{str(e)}")
             failed_tests += 1
 
     if failed_tests != 0:

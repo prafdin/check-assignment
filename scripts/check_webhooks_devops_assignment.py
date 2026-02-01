@@ -2,7 +2,7 @@ import argparse
 import sys
 from functools import partial
 
-from checker.checks import check_app_is_alive, check_event_update_site, CONFIG
+from checker.checks import check_app_is_alive, check_event_update_site, CONFIG, check_deploy_ref_matches_commit
 from checker.utils import CICommit
 
 
@@ -22,6 +22,8 @@ def main():
                         help="Timeout for checks")
     parser.add_argument("--poll_interval", type=int, required=True,
                         help="Poll interval for checks")
+    parser.add_argument("--branch_name", type=str, required=True,
+                        help="Branch name for CI commit")
 
     args = parser.parse_args()
 
@@ -37,8 +39,9 @@ def main():
     app_url = f"http://app.{args.id}.{args.proxy}"
     tests.append(partial(check_app_is_alive, app_url))
 
-    ci_commit = CICommit(args.repo_url, 'webhooks_devops_assignment', CONFIG)
+    ci_commit = CICommit(args.repo_url, args.branch_name, CONFIG)
     tests.append(partial(check_event_update_site, app_url, ci_commit))
+    tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
 
 
     failed_tests = 0

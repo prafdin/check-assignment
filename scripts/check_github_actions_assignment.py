@@ -25,6 +25,8 @@ def main():
                         help="Timeout for checks")
     parser.add_argument("--poll_interval", type=int, required=True,
                         help="Poll interval for checks")
+    parser.add_argument("--branch_name", type=str, required=True,
+                        help="Branch name for CI commit")
 
     args = parser.parse_args()
 
@@ -41,7 +43,7 @@ def main():
 
     tests.append(partial(check_app_is_alive, app_url))
     
-    ci_commit = CICommit(args.repo_url, 'github_actions_assignment', CONFIG)
+    ci_commit = CICommit(args.repo_url, args.branch_name, CONFIG)
 
     # Extract owner/repo from the repo_url
     match = re.search(r'git@github.com:(.*)\.git', args.repo_url)
@@ -54,7 +56,7 @@ def main():
     tests.append(partial(check_tests_passed, repo_name, str(ci_commit.commit_sha), args.github_token))
 
     required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
-    tests.append(partial(check_required_workflow_files, args.repo_url, 'github_actions_assignment', required_workflow_files))
+    tests.append(partial(check_required_workflow_files, args.repo_url, args.branch_name, required_workflow_files))
 
     tests.append(partial(check_release_updates_site, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
     tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
