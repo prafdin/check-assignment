@@ -1,5 +1,6 @@
 import requests
 import uuid
+from bs4 import BeautifulSoup
 
 def get_data(app_url: str) -> dict:
     """
@@ -37,4 +38,22 @@ def generate_random_data(app_url: str) -> dict:
         return new_comment
     return None
 
+def is_alive(base_url: str) -> bool:
+    """
+    Checks if the application is alive by making a GET request to the base URL.
+    """
+    print(f"--- Running Test: GET request to {base_url} ---")
+    try:
+        response = requests.get(base_url, timeout=10)
+        return str(response.status_code).startswith("2")
+    except requests.exceptions.RequestException:
+        return False
 
+def extract_deploy_ref(app_url: str) -> str:
+    body = requests.get(app_url).text
+    soup = BeautifulSoup(body, "html.parser")
+    meta_tag = soup.find("meta", attrs={"name": "deployref"})
+    if meta_tag:
+        return meta_tag.get("content")
+    else:
+        raise ValueError("Meta tag with 'deployref' name not found on page")

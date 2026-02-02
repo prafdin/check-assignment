@@ -1,6 +1,8 @@
 import requests
 import uuid
 
+from bs4 import BeautifulSoup
+
 # Global session object to maintain the session across function calls
 _session = None
 
@@ -92,3 +94,26 @@ def generate_random_data(base_url: str) -> dict | None:
     except ValueError:
         print(f"Failed to create data: Could not decode JSON from response.")
         return None
+
+def is_alive(base_url: str) -> bool:
+    """
+    Checks if the application is alive by attempting to fetch data, which requires authentication.
+    """
+    try:
+        # Reset session to ensure a fresh login attempt for the health check
+        global _session
+        _session = None
+        
+        get_data(base_url)
+        return True
+    except ConnectionError:
+        return False
+
+def extract_deploy_ref(app_url: str) -> str:
+    body = requests.get(app_url).text
+    soup = BeautifulSoup(body, "html.parser")
+    meta_tag = soup.find("meta", attrs={"name": "deployref"})
+    if meta_tag:
+        return meta_tag.get("content")
+    else:
+        raise ValueError("Meta tag with 'deployref' name not found on page")

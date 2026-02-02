@@ -1,5 +1,6 @@
 import argparse
 import sys
+import importlib
 from functools import partial
 
 from checker.checks import check_app_is_alive, check_event_update_site, CONFIG, check_deploy_ref_matches_commit
@@ -14,6 +15,8 @@ def main():
                         help="The ID for the URL.")
     parser.add_argument("--proxy", type=str, required=True,
                         help="The PROXY for the URL.")
+    parser.add_argument("--app", type=str, required=True,
+                        help="The application name for loading the correct API module.")
     parser.add_argument("--sa_login", type=str, required=True,
                         help="GitHub service account login")
     parser.add_argument("--sa_mail", type=str, required=True,
@@ -34,14 +37,21 @@ def main():
 
     print(f"Checking assignment for repository: {args.repo_url}")
 
+    try:
+        snake_case_app_name = args.app.replace('-', '_')
+        app_api = importlib.import_module(f"checker.apps.{snake_case_app_name}")
+    except ImportError:
+        print(f"Could not import app API for {args.app}")
+        sys.exit(1)
+
     tests = []
 
     app_url = f"http://app.{args.id}.{args.proxy}"
-    tests.append(partial(check_app_is_alive, app_url))
+    tests.append(partial(check_app_is_alive, app_api, app_url))
 
     ci_commit = CICommit(args.repo_url, args.branch_name, CONFIG)
-    tests.append(partial(check_event_update_site, app_url, ci_commit))
-    tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
+    tests.append(partial(check_event_update_site, app_api, app_url, ci_commit))
+    tests.append(partial(check_deploy_ref_matches_commit, app_api, app_url, str(ci_commit.commit_sha)))
 
 
     failed_tests = 0

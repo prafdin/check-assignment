@@ -2,7 +2,7 @@ import time
 from time import sleep
 import requests
 from github import Github
-from .utils import extract_deploy_ref, CICommit
+from .utils import CICommit
 import os
 import shutil
 import pygit2
@@ -20,18 +20,21 @@ CONFIG = {
 }
 
 
-def check_app_is_alive(url: str) -> bool:
-    print(f"--- Running Test: GET request to {url} ---")
+def check_app_is_alive(app_api, url: str) -> bool:
+    """
+    Checks if the application is alive by calling the specific is_alive method
+    from the provided app_api module.
+    """
+    print(f"--- Running application-specific is_alive check for {url} ---")
     try:
-        response = requests.get(url, timeout=10)
-        if str(response.status_code).startswith("2"):
-            print("Test PASSED: Received status code 2xx.")
+        if app_api.is_alive(url):
+            print("Test PASSED: Application is alive.")
             return True
         else:
-            print(f"Test FAILED: Received status code {response.status_code}.")
+            print("Test FAILED: Application is not alive.")
             return False
-    except requests.exceptions.RequestException as e:
-        print(f"Test FAILED: An error occurred during the GET request: {e}")
+    except Exception as e:
+        print(f"Test FAILED: An error occurred during the is_alive check: {e}")
         return False
 
 
@@ -46,13 +49,13 @@ def _run_with_timeout(condition, timeout: int, poll_interval: int) -> bool:
     return False
 
 
-def check_event_update_site(app_url: str, commit: CICommit) -> bool:
-    ref_before = extract_deploy_ref(requests.get(app_url).text)
+def check_event_update_site(app_api, app_url: str, commit: CICommit) -> bool:
+    ref_before = app_api.extract_deploy_ref(app_url)
 
     commit.push_to_autotest_branch()
 
     def check_for_update():
-        ref_after = extract_deploy_ref(requests.get(app_url).text)
+        ref_after = app_api.extract_deploy_ref(app_url)
         return ref_before != ref_after
 
     if _run_with_timeout(check_for_update, CONFIG["timeout"], CONFIG["poll_interval"]):
@@ -175,12 +178,12 @@ def check_required_workflow_files(repo_url: str, branch_name: str, files: list[s
             shutil.rmtree(temp_dir)
 
 
-def check_release_updates_site(app_url: str, repo_name: str, github_token: str, commit_sha: str) -> bool:
+def check_release_updates_site(app_api, app_url: str, repo_name: str, github_token: str, commit_sha: str) -> bool:
     print(f"--- Running Test: Check if a new release triggers a site update for repo {repo_name} ---")
     try:
         # 1. Get the deploy ref before the release
         print(f"Getting initial deploy ref from {app_url}...")
-        ref_before = extract_deploy_ref(requests.get(app_url).text)
+        ref_before = app_api.extract_deploy_ref(app_url)
         print(f"Initial deploy ref: {ref_before}")
 
         # 2. Create a git tag and release
@@ -217,7 +220,7 @@ def check_release_updates_site(app_url: str, repo_name: str, github_token: str, 
         print(f"Waiting for up to {CONFIG['timeout']} seconds for deployment...")
 
         def check_for_update():
-            ref_after = extract_deploy_ref(requests.get(app_url).text)
+            ref_after = app_api.extract_deploy_ref(app_url)
             if ref_before != ref_after:
                 print(f"Test PASSED: Deploy ref changed from '{ref_before}' to '{ref_after}'.")
                 return True
@@ -234,10 +237,10 @@ def check_release_updates_site(app_url: str, repo_name: str, github_token: str, 
         return False
 
 
-def check_deploy_ref_matches_commit(app_url: str, expected_commit_sha: str) -> bool:
+def check_deploy_ref_matches_commit(app_api, app_url: str, expected_commit_sha: str) -> bool:
     print(f"--- Running Test: Check if deploy ref on page matches commit SHA {expected_commit_sha} ---")
 
-    deployed_ref = extract_deploy_ref(requests.get(app_url).text)
+    deployed_ref = app_api.extract_deploy_ref(app_url)
     if deployed_ref == expected_commit_sha:
         print(f"Test PASSED: Deployed ref '{deployed_ref}' matches expected SHA.")
         return True

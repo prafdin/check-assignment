@@ -1,6 +1,7 @@
 import argparse
 import sys
 import re
+import importlib
 from functools import partial
 
 from checker.checks import check_app_is_alive, check_workflow_run_success, check_required_workflow_files, \
@@ -15,6 +16,8 @@ def main():
                         help="The ID for the URL.")
     parser.add_argument("--proxy", type=str, required=True,
                         help="The PROXY for the URL.")
+    parser.add_argument("--app", type=str, required=True,
+                        help="The application name for loading the correct API module.")
     parser.add_argument("--sa_login", type=str, required=True,
                         help="GitHub service account login")
     parser.add_argument("--sa_mail", type=str, required=True,
@@ -37,11 +40,18 @@ def main():
 
     print(f"Checking assignment for repository: {args.repo_url}")
 
+    try:
+        snake_case_app_name = args.app.replace('-', '_')
+        app_api = importlib.import_module(f"checker.apps.{snake_case_app_name}")
+    except ImportError:
+        print(f"Could not import app API for {args.app}")
+        sys.exit(1)
+
     tests = []
 
     app_url = f"http://app.{args.id}.{args.proxy}"
 
-    tests.append(partial(check_app_is_alive, app_url))
+    tests.append(partial(check_app_is_alive, app_api, app_url))
     
     ci_commit = CICommit(args.repo_url, args.branch_name, CONFIG)
 
@@ -58,8 +68,8 @@ def main():
     required_workflow_files = [".github/workflows/ci.yaml", ".github/workflows/deploy.yaml"]
     tests.append(partial(check_required_workflow_files, args.repo_url, args.branch_name, required_workflow_files))
 
-    tests.append(partial(check_release_updates_site, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
-    tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
+    tests.append(partial(check_release_updates_site, app_api, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
+    tests.append(partial(check_deploy_ref_matches_commit, app_api, app_url, str(ci_commit.commit_sha)))
 
     failed_tests = 0
     for test in tests:
