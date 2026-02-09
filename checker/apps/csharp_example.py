@@ -1,6 +1,7 @@
 import requests
 import re
 import json
+import uuid
 
 def is_alive(base_url: str) -> bool:
     """
@@ -45,3 +46,31 @@ def extract_deploy_ref(app_url: str) -> str | None:
 
     return None
 
+def get_data(base_url: str) -> list[str]:
+    """
+    Fetches words from the application.
+    """
+    print(f"--- Getting words from {base_url}/api/Words ---")
+    try:
+        response = requests.get(f"{base_url}/api/Words")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to get data: {e}")
+        return []
+
+def generate_random_data(base_url: str) -> str | None:
+    """
+    Generates a random word and adds it to the application.
+    """
+    random_word = f"word-{uuid.uuid4()}"
+    post_url = f"{base_url}/api/Words?value={random_word}"
+    print(f"--- Adding word to {post_url} ---")
+    try:
+        response = requests.post(post_url)
+        response.raise_for_status()
+        print(f"Successfully added data: {random_word}")
+        return random_word
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to add data: {e}")
+        return None

@@ -379,14 +379,8 @@ def check_release_updates_data(app_api, app_url: str, repo_name: str, github_tok
         data_after_add = app_api.get_data(app_url)
         print(f"Data after add: {data_after_add}")
 
-        found = False
-        for item_in_app in data_after_add:
-            # Check if all key-value pairs of new_data are present in item_in_app
-            if all(k in item_in_app and item_in_app[k] == new_data[k] for k in new_data):
-                found = True
-                break
-        if not found:
-             print(f"Test FAILED: Newly added data {new_data} not found in the application.")
+        if new_data not in data_after_add:
+             print(f"Test FAILED: Newly added data '{new_data}' not found in the application.")
              return False
 
         # 4. Create a release
@@ -411,12 +405,8 @@ def check_release_updates_data(app_api, app_url: str, repo_name: str, github_tok
         data_after_release = app_api.get_data(app_url)
         print(f"Data after release: {data_after_release}")
 
-        # 6. Compare data by checking if the lists of dictionaries are equivalent, ignoring order
-        temp_release_data = list(data_after_release)
-        if len(data_after_add) == len(temp_release_data) and all(
-            (item in temp_release_data and (temp_release_data.remove(item) or True)) # The 'or True' handles the case where remove returns None
-            for item in data_after_add
-        ):
+        # 6. Compare data by checking if the sets of strings are equivalent (order doesn't matter)
+        if set(data_after_add) == set(data_after_release):
             print("Test PASSED: Data is consistent after release.")
             return True
         else:

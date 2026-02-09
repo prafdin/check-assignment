@@ -65,7 +65,7 @@ def main():
     tests.append(partial(check_tests_passed, repo_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_docker_image_exists, image_name, str(ci_commit.commit_sha), args.github_token))
     tests.append(partial(check_release_updates_data, app_api, app_url, repo_name, args.github_token, str(ci_commit.commit_sha)))
-    tests.append(partial(check_deploy_ref_matches_commit, app_url, str(ci_commit.commit_sha)))
+    tests.append(partial(check_deploy_ref_matches_commit, app_api, app_url, str(ci_commit.commit_sha)))
 
     failed_tests = 0
     for test in tests:
