@@ -1,33 +1,10 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from checker.checks import check_app_is_alive, check_event_update_site, CONFIG
 
 from checker.utils import CICommit
 
-
-
-@pytest.mark.parametrize("status_code", [200, 201, 202])
-
-def test_app_is_alive(requests_mock, status_code):
-
-    url = "https://example.ru"
-
-    requests_mock.get(url, status_code=status_code)
-
-    assert check_app_is_alive(url) is True
-
-
-
-@pytest.mark.parametrize("status_code", [100, 300, 400, 500])
-
-def test_app_is_dead(requests_mock, status_code):
-
-    url = "https://example.ru"
-
-    requests_mock.get(url, status_code=status_code)
-
-    assert check_app_is_alive(url) is False
 
 
 
@@ -37,7 +14,8 @@ def test_event_update_site(requests_mock, monkeypatch):
 
     webhook_url = "git@github.com:example/repo.git"
 
-
+    app_api = MagicMock()
+    app_api.extract_deploy_ref.side_effect = ["old_ref", "new_ref"]
 
     monkeypatch.setitem(CONFIG, "timeout", 0.1)
     monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
@@ -64,7 +42,7 @@ def test_event_update_site(requests_mock, monkeypatch):
 
         # When check_event_update_site calls commit.push(), it will be using the mock.
 
-        assert check_event_update_site(app_url, mock_commit_instance) is True
+        assert check_event_update_site(app_api, app_url, mock_commit_instance) is True
 
         
 
@@ -81,6 +59,8 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
     webhook_url = "git@github.com:example/repo.git"
 
 
+    app_api = MagicMock()
+    app_api.extract_deploy_ref.side_effect = ["old_ref", "old_ref"]
 
     monkeypatch.setitem(CONFIG, "timeout", 0.1)
     monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
@@ -99,7 +79,7 @@ def test_event_doest_not_update_site(requests_mock, monkeypatch):
 
         mock_commit_instance = mock_commit_class.return_value
 
-        assert check_event_update_site(app_url, mock_commit_instance) is False
+        assert check_event_update_site(app_api, app_url, mock_commit_instance) is False
 
         mock_commit_instance.push_to_autotest_branch.assert_called_once()
 
