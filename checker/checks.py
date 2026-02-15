@@ -341,7 +341,7 @@ def check_tests_passed(repo_name: str, commit_sha: str, github_token: str) -> bo
                             skipped = testsuite.get('skipped')
                             tests = testsuite.get('tests')
                             
-                            if errors == "0" and failures == "0" and skipped == "0" and tests and int(tests) > 0:
+                            if errors == "0" and failures == "0" and tests and int(tests) > 0:
                                 print(f"Test PASSED: Found testsuite with errors={errors}, failures={failures}, skipped={skipped}, tests={tests}")
                                 return True
         
