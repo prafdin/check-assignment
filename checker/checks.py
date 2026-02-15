@@ -362,6 +362,14 @@ def push_and_check_workflow(ci_commit: CICommit, repo_name: str, commit_sha: str
     print("--- Commit pushed, now checking for workflow run ---")
     return check_workflow_run_success(repo_name, commit_sha, github_token)
 
+def make_hashable(obj):
+    if isinstance(obj, dict):
+        return frozenset((k, make_hashable(v)) for k, v in obj.items())
+    elif isinstance(obj, list):
+        return tuple(make_hashable(x) for x in obj)
+    else:
+        return obj
+
 def check_release_updates_data(app_api, app_url: str, repo_name: str, github_token: str, commit_sha: str) -> bool:
     print(f"--- Running Test: Check if a new release triggers a data update for repo {repo_name} ---")
     try:
@@ -406,7 +414,7 @@ def check_release_updates_data(app_api, app_url: str, repo_name: str, github_tok
         print(f"Data after release: {data_after_release}")
 
         # 6. Compare data by checking if the sets of strings are equivalent (order doesn't matter)
-        if set(data_after_add) == set(data_after_release):
+        if set(make_hashable(data_after_add)) == set(make_hashable(data_after_release)):
             print("Test PASSED: Data is consistent after release.")
             return True
         else:

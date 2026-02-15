@@ -13,7 +13,7 @@
     {
       "login": "SA3000UDP",
       "id": "sa3000udp",
-      "app": "csharp-example"
+      "app": "website-example"
     }
   ]
 }
