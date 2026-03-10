@@ -50,12 +50,26 @@ def _run_with_timeout(condition, timeout: int, poll_interval: int) -> bool:
 
 
 def check_event_update_site(app_api, app_url: str, commit: CICommit) -> bool:
-    ref_before = app_api.extract_deploy_ref(app_url)
+    ref_before = None
+    def read_ref_before():
+        nonlocal ref_before
+        try:
+            ref_before = app_api.extract_deploy_ref(app_url)
+        except ValueError:
+            return False
+        return True
+
+    if not _run_with_timeout(read_ref_before, CONFIG["timeout"], CONFIG["poll_interval"]):
+        print("Test FAILED: Could not read initial deploy ref.")
+        return False
 
     commit.push_to_autotest_branch()
 
     def check_for_update():
-        ref_after = app_api.extract_deploy_ref(app_url)
+        try:
+            ref_after = app_api.extract_deploy_ref(app_url)
+        except ValueError:
+            return False
         return ref_before != ref_after
 
     if _run_with_timeout(check_for_update, CONFIG["timeout"], CONFIG["poll_interval"]):
@@ -240,9 +254,15 @@ def check_release_updates_site(app_api, app_url: str, repo_name: str, github_tok
 def check_deploy_ref_matches_commit(app_api, app_url: str, expected_commit_sha: str) -> bool:
     print(f"--- Running Test: Check if deploy ref on page matches commit SHA {expected_commit_sha} ---")
 
-    deployed_ref = app_api.extract_deploy_ref(app_url)
-    if deployed_ref == expected_commit_sha:
-        print(f"Test PASSED: Deployed ref '{deployed_ref}' matches expected SHA.")
+    def check_for_update():
+        try:
+            deployed_ref = app_api.extract_deploy_ref(app_url)
+        except ValueError:
+            return False
+        return deployed_ref == expected_commit_sha
+
+    if _run_with_timeout(check_for_update, CONFIG["timeout"], CONFIG["poll_interval"]):
+        print(f"Test PASSED: Deployed ref matches expected SHA.")
         return True
     else:
         print(f"Test FAILED: Deploy ref did not match expected SHA '{expected_commit_sha}'")

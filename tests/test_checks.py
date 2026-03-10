@@ -3,7 +3,8 @@ import zipfile
 
 import pytest
 from unittest.mock import patch, MagicMock
-from checker.checks import check_workflow_run_success, CONFIG, check_tests_passed
+from checker.checks import check_workflow_run_success, CONFIG, check_tests_passed, check_event_update_site, \
+    check_deploy_ref_matches_commit
 
 
 def test_check_workflow_run_success_success(monkeypatch):
@@ -362,3 +363,45 @@ def test_check_tests_passed_timeout(monkeypatch):
         mock_github_instance.get_repo.return_value = mock_repo
 
         assert check_tests_passed("owner/repo", "commit_sha", "fake_token") is False
+
+def test_check_event_update_site_succeeds_despite_transient_errors(monkeypatch):
+    """
+    Tests the success path where the site eventually updates,
+    even if polling for the ref fails intermittently.
+    """
+    monkeypatch.setitem(CONFIG, "timeout", 0.6)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
+
+    mock_app_api = MagicMock()
+    mock_commit = MagicMock()
+    mock_app_api.extract_deploy_ref.side_effect = [
+        ValueError("Initial call failed"),
+        ValueError("And one more call failed"),
+        "initial_ref",
+        ValueError("Call failed due to site update"),
+        ValueError("Still failed due to site update"),
+        "updated_ref"
+    ]
+
+    result = check_event_update_site(mock_app_api, "http://example.com", mock_commit)
+
+    assert result is True
+
+def test_check_deploy_ref_matches_commit_succeeds_with_retry(monkeypatch):
+    """
+    Tests that the check succeeds if the ref is fetched after a transient error.
+    """
+    monkeypatch.setitem(CONFIG, "timeout", 0.5)
+    monkeypatch.setitem(CONFIG, "poll_interval", 0.1)
+
+    mock_app_api = MagicMock()
+    expected_sha = "expected_sha_123"
+
+    mock_app_api.extract_deploy_ref.side_effect = [
+        ValueError("First fetch failed"),
+        expected_sha
+    ]
+
+    result = check_deploy_ref_matches_commit(mock_app_api, "http://example.com", expected_sha)
+
+    assert result is True
