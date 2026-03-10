@@ -1,6 +1,7 @@
 import requests
 import uuid
 
+from checker.utils import log_body
 from bs4 import BeautifulSoup
 
 # Global session object to maintain the session across function calls
@@ -110,7 +111,11 @@ def is_alive(base_url: str) -> bool:
         return False
 
 def extract_deploy_ref(app_url: str) -> str:
-    body = requests.get(app_url).text
+    print(f"--- Sending GET request to {app_url} ---")
+    response = requests.get(app_url)
+    print(f"--- Received response from: {response.url} ---")
+    body = response.text
+    log_body(body)
     soup = BeautifulSoup(body, "html.parser")
     meta_tag = soup.find("meta", attrs={"name": "deployref"})
     if meta_tag:

@@ -2,7 +2,7 @@ import tempfile
 import pygit2
 import time
 from typing import Any, Dict
-
+import os
 
 
 class CICommit:
@@ -48,3 +48,21 @@ class CICommit:
         remote.push([target_branch_ref], callbacks=self.callbacks)
 
 
+def get_first_n_lines(text: str, n: int) -> str:
+    """Returns the first n lines of a given text."""
+    return "".join(text.splitlines()[:n])
+
+def log_body(body: str):
+    """
+    Logs the body of a response, truncating it to a number of lines
+    specified by the LOG_BODY_LINES environment variable.
+    Defaults to 50 lines if the environment variable is not set or invalid.
+    """
+    try:
+        log_lines = int(os.environ.get("LOG_BODY_LINES", 50))
+    except (ValueError, TypeError):
+        log_lines = 50
+
+    if log_lines > 0:
+        truncated_body = get_first_n_lines(body, log_lines)
+        print(f"--- Received body (first {log_lines} lines):\n{truncated_body}")
